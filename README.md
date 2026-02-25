@@ -2,6 +2,8 @@
 
 > **Decentralized Verifiable Reasoning Infrastructure**
 
+**🌐 [Live Demo](https://reasonforge-app.vercel.app)**
+
 ReasonForge is a cutting-edge protocol designed to transform raw LLM output into **Verifiable Logic Traces**. In an era of black-box AI, ReasonForge provides a decentralized subnet structure where reasoning is not just generated, but forged, debated, and verified through a multi-agent consensus mechanism.
 
 ![ReasonForge Demo](https://img.shields.io/badge/Status-LLM--Enhanced--MVP-00BFA5?style=for-the-badge)
