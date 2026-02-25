@@ -1,655 +1,822 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Brain,
-  ShieldCheck,
-  Cpu,
-  Activity,
-  Terminal,
-  CheckCircle2,
-  AlertCircle,
-  Database,
-  Zap,
-  ChevronRight,
-  Code,
-  Variable,
-  Microscope,
-  Scale,
-  MessageSquare,
-  FileText,
-  Sparkles,
-  ShieldAlert,
-  WifiOff,
-  Globe
-} from 'lucide-react';
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, Cell, RadarChart, Radar,
+  PolarGrid, PolarAngleAxis, PolarRadiusAxis
+} from 'recharts';
 
-const apiKey = ""; // The environment provides the API key at runtime
+// ─────────────────────────────────────────────────────────────
+// Protocol Constants (matching Python whitepaper exactly)
+// ─────────────────────────────────────────────────────────────
+const W_QUALITY = 0.40;
+const W_ACCURACY = 0.30;
+const W_NOVELTY = 0.15;
+const W_EFFICIENCY = 0.15;
+const EMISSION_MINER_SHARE = 0.90;
+const EMISSION_VALIDATOR_SHARE = 0.10;
+const PEB_ALPHA = 0.20;
+const PEB_K = 10;
+const PEB_STREAK_CAP = 10;
+const BREAKTHROUGH_MULTIPLIER = 2.0;
+const BREAKTHROUGH_THRESHOLD = 0.8;
+const TRAP_RATE = 0.15;
+const TRAP_THRESHOLD = 0.30;
+const VAS_SLASH_THRESHOLD = 0.60;
+const VAS_SLASH_GAMMA = 0.05;
+const TASKS_PER_EPOCH = 12;
+const VALIDATORS_PER_TASK = 3;
 
-interface Task {
-  problem: string;
-  domain: string;
-  difficulty: number;
+const DIFFICULTY_MULTIPLIER: Record<number, number> = {
+  1: 1.0, 2: 1.0, 3: 1.25, 4: 1.25,
+  5: 1.5, 6: 1.5, 7: 1.75, 8: 1.75,
+  9: 2.0, 10: 2.0,
+};
+
+const DOMAINS = ['mathematics', 'code', 'scientific', 'strategic', 'causal', 'ethical'] as const;
+
+// ─────────────────────────────────────────────────────────────
+// JS Simulation Engine (porting Python formulas)
+// ─────────────────────────────────────────────────────────────
+
+function computeCMS(q: number, a: number, n: number, e: number): number {
+  return W_QUALITY * q + W_ACCURACY * a + W_NOVELTY * n + W_EFFICIENCY * e;
 }
 
-interface MinerStep {
-  id: number;
-  logic: string;
-  evidence?: string;
+function computePEB(rank: number, streak: number): number {
+  if (rank < 1 || rank > PEB_K) return 0;
+  const capped = Math.min(streak, PEB_STREAK_CAP);
+  if (capped <= 0) return 0;
+  return PEB_ALPHA * (1.0 / rank) * Math.sqrt(capped);
 }
 
-interface MinerOutput {
-  steps: MinerStep[];
-  final_answer: string;
+function distributeEmissions(miners: MinerSt[], pool: number): number[] {
+  const weighted = miners.map(m => m.sEpoch * (1.0 + m.peb));
+  const total = weighted.reduce((a, b) => a + b, 0);
+  if (total <= 0) return miners.map(() => pool / miners.length);
+  return weighted.map(w => (w / total) * pool);
 }
 
-interface ValidationData {
-  scores: {
-    A: number;
-    C: number;
-    N: number;
+function computeVAS(scores: number[], consensus: number[]): number {
+  if (scores.length === 0) return 1.0;
+  const totalDev = scores.reduce((sum, s, i) => sum + Math.abs(s - consensus[i]), 0);
+  return Math.max(0, 1.0 - totalDev / scores.length);
+}
+
+function computeTrapPenalty(trapScores: number[]): number {
+  if (trapScores.length === 0) return 1.0;
+  const avg = trapScores.reduce((a, b) => a + b, 0) / trapScores.length;
+  if (avg >= TRAP_THRESHOLD) return 1.0;
+  return Math.max(0, avg / TRAP_THRESHOLD);
+}
+
+function computeSlash(stake: number, vasAvg: number): number {
+  if (vasAvg >= VAS_SLASH_THRESHOLD) return 0;
+  return VAS_SLASH_GAMMA * stake * Math.pow(VAS_SLASH_THRESHOLD - vasAvg, 2);
+}
+
+function clamp(v: number, min = 0, max = 1): number {
+  return Math.max(min, Math.min(max, v));
+}
+
+function gaussianRandom(rng: () => number, mean = 0, std = 1): number {
+  const u1 = rng();
+  const u2 = rng();
+  return mean + std * Math.sqrt(-2 * Math.log(u1 || 0.001)) * Math.cos(2 * Math.PI * u2);
+}
+
+// Seeded PRNG (simple Mulberry32)
+function createRng(seed: number) {
+  let s = seed | 0;
+  return () => {
+    s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
-  critique: string;
-  cms: number;
 }
 
-interface DebateData {
-  challenge: string;
-  targeted_step_id: number;
-  rebuttal: string;
-  verdict: string;
+// ─────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────
+
+interface MinerSt {
+  minerId: string;
+  name: string;
+  tier: 'elite' | 'strong' | 'mid' | 'weak' | 'adversarial';
+  sEpoch: number;
+  peb: number;
+  rank: number;
+  streak: number;
+  totalTao: number;
+  epochTao: number;
+  trapPenalty: number;
+  breakthroughs: number;
+  epochScores: number[];
+  trapScores: number[];
+  sEpochHistory: number[];
+  quality: number;
+  accuracy: number;
+  novelty: number;
+  efficiency: number;
 }
 
-interface ReportData {
-  summary: string;
-  business_impact: string;
-  confidence_level: string;
+interface ValidatorSt {
+  validatorId: string;
+  name: string;
+  stake: number;
+  profile: 'honest' | 'good' | 'lazy' | 'malicious';
+  vas: number;
+  repMult: number;
+  totalTao: number;
+  epochTao: number;
+  slashed: number;
+  vasHistory: number[];
 }
 
-interface LogEntry {
-  timestamp: string;
-  message: string;
-  type: 'info' | 'success' | 'error';
-}
+const MINER_TIERS: Record<string, { q: number; a: number; n: number; e: number; var: number }> = {
+  elite:       { q: 0.88, a: 0.90, n: 0.80, e: 0.85, var: 0.06 },
+  strong:      { q: 0.78, a: 0.80, n: 0.70, e: 0.75, var: 0.08 },
+  mid:         { q: 0.65, a: 0.68, n: 0.55, e: 0.65, var: 0.10 },
+  weak:        { q: 0.45, a: 0.50, n: 0.40, e: 0.55, var: 0.12 },
+  adversarial: { q: 0.20, a: 0.15, n: 0.10, e: 0.30, var: 0.15 },
+};
 
-const TASK_DOMAINS = [
-  { id: 'math', name: 'Mathematics', icon: <Variable className="w-4 h-4" />, color: 'text-blue-400' },
-  { id: 'code', name: 'Formal Code', icon: <Code className="w-4 h-4" />, color: 'text-green-400' },
-  { id: 'science', name: 'Scientific Logic', icon: <Microscope className="w-4 h-4" />, color: 'text-purple-400' },
-  { id: 'ethics', name: 'Ethical Analysis', icon: <Scale className="w-4 h-4" />, color: 'text-amber-400' }
+const VALIDATOR_PROFILES: Record<string, { noise: number; bias: number }> = {
+  honest:    { noise: 0.03, bias: 0.0 },
+  good:      { noise: 0.06, bias: 0.0 },
+  lazy:      { noise: 0.15, bias: -0.10 },
+  malicious: { noise: 0.25, bias: +0.20 },
+};
+
+const DEFAULT_MINERS: { id: string; name: string; tier: MinerSt['tier'] }[] = [
+  { id: 'm-001', name: 'DeepReason-v3', tier: 'elite' },
+  { id: 'm-002', name: 'LogicForge-7B', tier: 'elite' },
+  { id: 'm-003', name: 'ProofMaster', tier: 'strong' },
+  { id: 'm-004', name: 'ReasonSwarm', tier: 'strong' },
+  { id: 'm-005', name: 'CausalNet', tier: 'strong' },
+  { id: 'm-006', name: 'ThinkChain', tier: 'mid' },
+  { id: 'm-007', name: 'InferBot', tier: 'mid' },
+  { id: 'm-008', name: 'NovaMind', tier: 'mid' },
+  { id: 'm-009', name: 'BasicReasoner', tier: 'weak' },
+  { id: 'm-010', name: 'CheapInference', tier: 'weak' },
+  { id: 'm-011', name: 'SpamBot-X', tier: 'adversarial' },
+  { id: 'm-012', name: 'CopyCat-3', tier: 'adversarial' },
 ];
 
-const App = () => {
-  const [status, setStatus] = useState<string>('idle'); // idle, generating_task, mining, validating, debating, reporting, completed
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [currentTask, setCurrentTask] = useState<Task | null>(null);
-  const [minerOutput, setMinerOutput] = useState<MinerOutput | null>(null);
-  const [validationData, setValidationData] = useState<ValidationData | null>(null);
-  const [debateData, setDebateData] = useState<DebateData | null>(null);
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-  const [isSimulation, setIsSimulation] = useState<boolean>(!apiKey);
-  const [stats, setStats] = useState<{
-    totalTasks: number;
-    avgCMS: number;
-    taoEmitted: number;
-  }>({
-    totalTasks: 0,
-    avgCMS: 0,
-    taoEmitted: 0
+const DEFAULT_VALIDATORS: { id: string; name: string; stake: number; profile: ValidatorSt['profile'] }[] = [
+  { id: 'v-001', name: 'TruthGuard', stake: 5000, profile: 'honest' },
+  { id: 'v-002', name: 'AccuScore', stake: 3000, profile: 'honest' },
+  { id: 'v-003', name: 'FairCheck', stake: 4000, profile: 'good' },
+  { id: 'v-004', name: 'QuickVal', stake: 2000, profile: 'good' },
+  { id: 'v-005', name: 'LazyNode', stake: 1500, profile: 'lazy' },
+  { id: 'v-006', name: 'BadActor', stake: 1000, profile: 'malicious' },
+];
+
+// ─────────────────────────────────────────────────────────────
+// Full Epoch Runner (JS port of Python simulator)
+// ─────────────────────────────────────────────────────────────
+
+function initMiners(): MinerSt[] {
+  return DEFAULT_MINERS.map(m => ({
+    minerId: m.id,
+    name: m.name,
+    tier: m.tier,
+    sEpoch: 0,
+    peb: 0,
+    rank: 0,
+    streak: 0,
+    totalTao: 0,
+    epochTao: 0,
+    trapPenalty: 1.0,
+    breakthroughs: 0,
+    epochScores: [],
+    trapScores: [],
+    sEpochHistory: [],
+    quality: 0,
+    accuracy: 0,
+    novelty: 0,
+    efficiency: 0,
+  }));
+}
+
+function initValidators(): ValidatorSt[] {
+  return DEFAULT_VALIDATORS.map(v => ({
+    validatorId: v.id,
+    name: v.name,
+    stake: v.stake,
+    profile: v.profile,
+    vas: 1.0,
+    repMult: 1.0,
+    totalTao: 0,
+    epochTao: 0,
+    slashed: 0,
+    vasHistory: [],
+  }));
+}
+
+interface EpochConfig {
+  totalEmission: number;
+  epochId: number;
+}
+
+interface EpochStats {
+  tasksProcessed: number;
+  trapsInjected: number;
+  breakthroughs: number;
+  avgCms: number;
+}
+
+function runEpoch(
+  miners: MinerSt[],
+  validators: ValidatorSt[],
+  config: EpochConfig,
+  rng: () => number,
+): EpochStats {
+  const { totalEmission, epochId } = config;
+  const taskCount = TASKS_PER_EPOCH;
+  const trapCount = Math.max(1, Math.floor(taskCount * TRAP_RATE));
+
+  // Reset epoch accumulators
+  miners.forEach(m => {
+    m.epochScores = [];
+    m.trapScores = [];
+    m.epochTao = 0;
+    m.quality = 0;
+    m.accuracy = 0;
+    m.novelty = 0;
+    m.efficiency = 0;
+  });
+  validators.forEach(v => {
+    v.epochTao = 0;
+    v.slashed = 0;
   });
 
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // Generate tasks
+  const tasks: { difficulty: number; isTrap: boolean; domain: string; unsolved: boolean }[] = [];
+  for (let i = 0; i < taskCount; i++) {
+    const isTrap = i < trapCount;
+    tasks.push({
+      difficulty: Math.floor(rng() * 8) + 2, // 2-9
+      isTrap,
+      domain: DOMAINS[Math.floor(rng() * DOMAINS.length)],
+      unsolved: rng() < 0.05,
+    });
+  }
+  // Shuffle
+  for (let i = tasks.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [tasks[i], tasks[j]] = [tasks[j], tasks[i]];
+  }
+
+  const valScoresGiven: Record<string, number[]> = {};
+  const valConsensusRef: Record<string, number[]> = {};
+  validators.forEach(v => {
+    valScoresGiven[v.validatorId] = [];
+    valConsensusRef[v.validatorId] = [];
+  });
+
+  let allCms: number[] = [];
+  let totalBreakthroughs = 0;
+
+  // Process each task
+  for (const task of tasks) {
+    const diffMult = DIFFICULTY_MULTIPLIER[task.difficulty] || 1.0;
+    const diffPenalty = (task.difficulty - 5) * 0.015;
+
+    for (const miner of miners) {
+      const tier = MINER_TIERS[miner.tier];
+      const domainBonus = (rng() - 0.3) * 0.15; // approx [-0.05, 0.10]
+
+      const q = clamp(tier.q + domainBonus - diffPenalty + gaussianRandom(rng, 0, tier.var));
+      const a = clamp(tier.a + domainBonus - diffPenalty + gaussianRandom(rng, 0, tier.var));
+      const n = clamp(tier.n + domainBonus - diffPenalty + gaussianRandom(rng, 0, tier.var));
+      const e = clamp(tier.e + domainBonus - diffPenalty + gaussianRandom(rng, 0, tier.var));
+
+      // Track latest dimension scores for display
+      miner.quality = q;
+      miner.accuracy = a;
+      miner.novelty = n;
+      miner.efficiency = e;
+
+      const oScore = computeCMS(q, a, n, e);
+
+      // Assign validators and evaluate
+      const shuffledVals = [...validators].sort(() => rng() - 0.5);
+      const assigned = shuffledVals.slice(0, Math.min(VALIDATORS_PER_TASK, validators.length));
+
+      const valScoreStakes: [number, number][] = assigned.map(v => {
+        const prof = VALIDATOR_PROFILES[v.profile];
+        const vScore = clamp(oScore + prof.bias + gaussianRandom(rng, 0, prof.noise));
+        return [vScore, v.stake];
+      });
+
+      // Consensus score (stake-weighted average for simplicity)
+      const totalStake = valScoreStakes.reduce((s, [, st]) => s + st, 0);
+      const cScore = totalStake > 0
+        ? valScoreStakes.reduce((s, [sc, st]) => s + sc * st, 0) / totalStake
+        : oScore;
+
+      const finalScore = 0.60 * oScore + 0.40 * cScore;
+
+      // Compute CMS from final score
+      let cms = finalScore;
+
+      // Apply breakthrough
+      if (task.unsolved && cms > BREAKTHROUGH_THRESHOLD) {
+        cms *= BREAKTHROUGH_MULTIPLIER;
+        totalBreakthroughs++;
+        miner.breakthroughs++;
+      }
+
+      // Track VAS deviations
+      assigned.forEach((v, idx) => {
+        valScoresGiven[v.validatorId].push(valScoreStakes[idx][0]);
+        valConsensusRef[v.validatorId].push(cScore);
+      });
+
+      miner.epochScores.push(cms * diffMult);
+      allCms.push(cms);
+
+      if (task.isTrap) {
+        miner.trapScores.push(cms);
+      }
+    }
+  }
+
+  // Compute S_epoch
+  miners.forEach(m => {
+    if (m.epochScores.length > 0) {
+      const avg = m.epochScores.reduce((a, b) => a + b, 0) / m.epochScores.length;
+      const tp = computeTrapPenalty(m.trapScores);
+      m.trapPenalty = tp;
+      m.sEpoch = avg * tp;
+    } else {
+      m.sEpoch = 0;
+    }
+  });
+
+  // Rank miners
+  const sorted = [...miners].sort((a, b) => b.sEpoch - a.sEpoch);
+  sorted.forEach((m, i) => {
+    m.rank = i + 1;
+    if (m.rank <= PEB_K && m.sEpoch > 0) {
+      m.streak++;
+    } else {
+      m.streak = 0;
+    }
+    m.peb = computePEB(m.rank, m.streak);
+  });
+
+  // Store history
+  miners.forEach(m => m.sEpochHistory.push(m.sEpoch));
+
+  // Distribute miner emissions
+  const minerPool = totalEmission * EMISSION_MINER_SHARE;
+  const rewards = distributeEmissions(sorted, minerPool);
+  sorted.forEach((m, i) => {
+    m.epochTao = Math.round(rewards[i] * 1000000) / 1000000;
+    m.totalTao += m.epochTao;
+  });
+
+  // Finalize validator VAS
+  validators.forEach(v => {
+    const given = valScoresGiven[v.validatorId];
+    const ref = valConsensusRef[v.validatorId];
+    v.vas = given.length > 0 ? computeVAS(given, ref) : 1.0;
+    v.vasHistory.push(v.vas);
+
+    // Reputation multiplier
+    const avg30 = v.vasHistory.length > 0
+      ? v.vasHistory.slice(-30).reduce((a, b) => a + b, 0) / Math.min(v.vasHistory.length, 30)
+      : 1.0;
+    if (avg30 <= 0.80) {
+      v.repMult = 1.0;
+    } else {
+      v.repMult = Math.min(1.5, 1.0 + 0.5 * (avg30 - 0.80) / 0.20);
+    }
+
+    // Slashing
+    const avg7 = v.vasHistory.length > 0
+      ? v.vasHistory.slice(-7).reduce((a, b) => a + b, 0) / Math.min(v.vasHistory.length, 7)
+      : 1.0;
+    v.slashed = computeSlash(v.stake, avg7);
+  });
+
+  // Distribute validator emissions
+  const valPool = totalEmission * EMISSION_VALIDATOR_SHARE;
+  const valWeighted = validators.map(v => v.vas * v.stake * v.repMult);
+  const valTotal = valWeighted.reduce((a, b) => a + b, 0);
+  validators.forEach((v, i) => {
+    v.epochTao = valTotal > 0
+      ? Math.round((valWeighted[i] / valTotal) * valPool * 1000000) / 1000000
+      : valPool / validators.length;
+    v.totalTao += v.epochTao;
+  });
+
+  return {
+    tasksProcessed: taskCount,
+    trapsInjected: trapCount,
+    breakthroughs: totalBreakthroughs,
+    avgCms: allCms.length > 0 ? allCms.reduce((a, b) => a + b, 0) / allCms.length : 0,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Color Helpers
+// ─────────────────────────────────────────────────────────────
+
+const TIER_COLORS: Record<string, string> = {
+  elite: '#FFD700',
+  strong: '#60A5FA',
+  mid: '#9CA3AF',
+  weak: '#FB923C',
+  adversarial: '#EF4444',
+};
+
+const TIER_BG: Record<string, string> = {
+  elite: 'rgba(255,215,0,0.15)',
+  strong: 'rgba(96,165,250,0.15)',
+  mid: 'rgba(156,163,175,0.10)',
+  weak: 'rgba(251,146,60,0.15)',
+  adversarial: 'rgba(239,68,68,0.15)',
+};
+
+function vasColor(vas: number): string {
+  if (vas > 0.8) return '#10B981';
+  if (vas > 0.6) return '#F59E0B';
+  return '#EF4444';
+}
+
+function vasLabel(vas: number): string {
+  if (vas > 0.8) return 'Healthy';
+  if (vas > 0.6) return 'Warning';
+  return 'Critical';
+}
+
+// ─────────────────────────────────────────────────────────────
+// Dashboard Component
+// ─────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [miners, setMiners] = useState<MinerSt[]>(initMiners());
+  const [validators, setValidators] = useState<ValidatorSt[]>(initValidators());
+  const [epochCount, setEpochCount] = useState(0);
+  const [stats, setStats] = useState<EpochStats>({ tasksProcessed: 0, trapsInjected: 0, breakthroughs: 0, avgCms: 0 });
+  const [autoRun, setAutoRun] = useState(false);
+  const [selectedMiner, setSelectedMiner] = useState<string | null>(null);
+  const [emission, setEmission] = useState(100);
+  const seedRef = useRef(42);
+  const rngRef = useRef(createRng(42));
+
+  const handleRunEpoch = useCallback(() => {
+    const newEpoch = epochCount + 1;
+    const newMiners = miners.map(m => ({ ...m, sEpochHistory: [...m.sEpochHistory] }));
+    const newValidators = validators.map(v => ({ ...v, vasHistory: [...v.vasHistory] }));
+
+    const epochStats = runEpoch(newMiners, newValidators, {
+      totalEmission: emission,
+      epochId: newEpoch,
+    }, rngRef.current);
+
+    setMiners(newMiners);
+    setValidators(newValidators);
+    setEpochCount(newEpoch);
+    setStats(epochStats);
+  }, [miners, validators, epochCount, emission]);
+
+  const handleReset = useCallback(() => {
+    seedRef.current = Math.floor(Math.random() * 100000);
+    rngRef.current = createRng(seedRef.current);
+    setMiners(initMiners());
+    setValidators(initValidators());
+    setEpochCount(0);
+    setStats({ tasksProcessed: 0, trapsInjected: 0, breakthroughs: 0, avgCms: 0 });
+    setSelectedMiner(null);
+  }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (!autoRun) return;
+    const timer = setInterval(handleRunEpoch, 2000);
+    return () => clearInterval(timer);
+  }, [autoRun, handleRunEpoch]);
+
+  const sortedMiners = [...miners].sort((a, b) => b.sEpoch - a.sEpoch);
+  const selectedMinerData = miners.find(m => m.minerId === selectedMiner);
+
+  // Chart data
+  const barData = sortedMiners.map(m => ({
+    name: m.name.length > 12 ? m.name.slice(0, 12) + '..' : m.name,
+    reward: Math.round(m.epochTao * 100) / 100,
+    peb: Math.round(m.peb * m.epochTao * 100) / 100,
+    tier: m.tier,
+  }));
+
+  // Line chart data for epoch history
+  const lineData: Record<string, unknown>[] = [];
+  if (miners[0]?.sEpochHistory.length > 0) {
+    const maxEpochs = miners[0].sEpochHistory.length;
+    for (let i = 0; i < maxEpochs; i++) {
+      const point: Record<string, unknown> = { epoch: i + 1 };
+      miners.forEach(m => {
+        if (i < m.sEpochHistory.length) {
+          point[m.name] = Math.round(m.sEpochHistory[i] * 10000) / 10000;
+        }
+      });
+      lineData.push(point);
     }
-  }, [logs]);
-
-  const addLog = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
-    setLogs(prev => [...prev, { timestamp: new Date().toLocaleTimeString(), message, type }]);
-  };
-
-  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-  // --- Mock Engine for No-API Key Situations ---
-  const getMockResponse = (prompt: string, systemInstruction: string): any => {
-    const sys = systemInstruction.toLowerCase();
-    const p = prompt.toLowerCase();
-
-    if (sys.includes("generator")) {
-      const tasks = [
-        { problem: "Prove that for any prime p > 3, p² - 1 is divisible by 24.", domain: "math", difficulty: 7 },
-        { problem: "Implement a thread-safe circular buffer in Rust and prove its safety against race conditions.", domain: "code", difficulty: 8 },
-        { problem: "Analyze the causal effect of carbon tax implementation on regional manufacturing GDP using a Synthetic Control Method.", domain: "science", difficulty: 9 },
-        { problem: "Evaluate the utilitarian vs deontological tradeoffs of an autonomous vehicle prioritizing passenger safety over multiple pedestrians in a zero-option collision scenario.", domain: "ethics", difficulty: 6 }
-      ];
-      return tasks[Math.floor(Math.random() * tasks.length)];
-    }
-
-    if (sys.includes("miner")) {
-      return {
-        steps: [
-          { id: 1, logic: "Initialize formal definitions and established axioms for the given domain.", evidence: "Referencing standard library constants." },
-          { id: 2, logic: "Decompose the problem into verifiable sub-clauses to prevent compounding logic errors.", evidence: "Logical modularity check passed." },
-          { id: 3, logic: "Execute iterative reasoning chain, verifying each step against the formal sandbox constraints.", evidence: "Step-wise trace validated by local prover." }
-        ],
-        final_answer: "The solution has been formally forged and verified. All constraints are satisfied."
-      };
-    }
-
-    if (sys.includes("validator")) {
-      return {
-        scores: { A: 0.95, C: 0.92, N: 0.88 },
-        critique: "Excellent multi-step derivation. The miner demonstrated superior logical density and successfully navigated adversarial edge cases injected into the task pool."
-      };
-    }
-
-    if (sys.includes("adversarial")) {
-      return {
-        challenge: "Step 2 assumes a static environment variable that may fluctuate under load.",
-        targeted_step_id: 2,
-        rebuttal: "The miner logic incorporates a dynamic mutex lock which was omitted for brevity in the summary but is active in the artifact.",
-        verdict: "CHALLENGE DEFLECTED - Miner logic holds under adversarial stress."
-      };
-    }
-
-    if (sys.includes("reporting")) {
-      return {
-        summary: "The ReasonForge protocol has verified this logic with 99.8% mathematical certainty, outperforming standard centralized LLM baselines.",
-        business_impact: "Integrating this verifiable trace reduces audit overhead by 70% for compliance-heavy financial transactions.",
-        confidence_level: "HIGH (SYSTEM 2)"
-      };
-    }
-
-    return null;
-  };
-
-  const callGemini = async (prompt: string, systemInstruction: string, responseSchema: any) => {
-    if (!apiKey) {
-      await sleep(1000 + Math.random() * 1000); // Simulate network latency
-      return getMockResponse(prompt, systemInstruction);
-    }
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-    const payload = {
-      contents: [{ parts: [{ text: prompt }] }],
-      systemInstruction: { parts: [{ text: systemInstruction }] },
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema
-      }
-    };
-
-    let lastError: any = null;
-    for (let i = 0; i < 5; i++) {
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error.message || "API Error");
-        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) throw new Error("Empty response from AI");
-
-        const text = data.candidates[0].content.parts[0].text;
-        const cleanJson = text.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-        return JSON.parse(cleanJson);
-      } catch (error) {
-        lastError = error;
-        await sleep(Math.pow(2, i) * 1000);
-      }
-    }
-
-    addLog(`Network Failure: ${lastError?.message || 'Unknown error'}. Switching to Simulation Mode.`, 'error');
-    setIsSimulation(true);
-    return getMockResponse(prompt, systemInstruction);
-  };
-
-  const startDemo = async () => {
-    if (status !== 'idle' && status !== 'completed') return;
-
-    setStatus('generating_task');
-    setLogs([]);
-    setDebateData(null);
-    setReportData(null);
-    addLog(`Initializing ReasonForge Subnet Protocol... [${isSimulation ? 'SIMULATION' : 'LIVE'}]`);
-
-    const taskSchema = {
-      type: "OBJECT",
-      properties: {
-        problem: { type: "STRING" },
-        domain: { type: "STRING", enum: ["math", "code", "science", "ethics"] },
-        difficulty: { type: "NUMBER" }
-      },
-      required: ["problem", "domain", "difficulty"]
-    };
-
-    const task = await callGemini(
-      `Generate a challenging reasoning task. Network Avg CMS: ${stats.avgCMS.toFixed(2)}.`,
-      "You are the ReasonForge Task Generator. Create unique, difficult reasoning tasks for miners.",
-      taskSchema
-    );
-
-    if (!task) {
-      setStatus('idle');
-      return;
-    }
-
-    setCurrentTask(task);
-    addLog(`Task Dispatched: [${task.domain.toUpperCase()}] Difficulty ${task.difficulty}/10`, 'success');
-
-    // Phase 2: Miner Execution
-    setStatus('mining');
-    addLog("Miner Node 0xa3f7 assigned. Starting Reasoning Engine...");
-
-    const minerSchema = {
-      type: "OBJECT",
-      properties: {
-        steps: {
-          type: "ARRAY",
-          items: {
-            type: "OBJECT",
-            properties: {
-              id: { type: "NUMBER" },
-              logic: { type: "STRING" },
-              evidence: { type: "STRING" }
-            },
-            required: ["id", "logic"]
-          }
-        },
-        final_answer: { type: "STRING" }
-      },
-      required: ["steps", "final_answer"]
-    };
-
-    const result = await callGemini(
-      `Solve this problem: ${task.problem}`,
-      "You are a ReasonForge Miner. Provide deep, multi-step, verifiable reasoning in a structured format.",
-      minerSchema
-    );
-
-    if (!result) { setStatus('idle'); return; }
-
-    setMinerOutput(result);
-    addLog(`Miner generated ${result.steps.length} reasoning steps.`);
-
-    // Phase 3: Validation
-    setStatus('validating');
-    addLog("Validator Node 0x992b analyzing reasoning trace...");
-
-    const validatorSchema = {
-      type: "OBJECT",
-      properties: {
-        scores: {
-          type: "OBJECT",
-          properties: { A: { type: "NUMBER" }, C: { type: "NUMBER" }, N: { type: "NUMBER" } },
-          required: ["A", "C", "N"]
-        },
-        critique: { type: "STRING" }
-      },
-      required: ["scores", "critique"]
-    };
-
-    const validation = await callGemini(
-      `Review task and miner solution: ${JSON.stringify(result)}`,
-      "You are a ReasonForge Validator. Be rigorous.",
-      validatorSchema
-    );
-
-    if (!validation) { setStatus('idle'); return; }
-
-    const cms = (validation.scores.A * 0.4) + (validation.scores.C * 0.4) + (validation.scores.N * 0.2);
-    setValidationData({ ...validation, cms });
-
-    addLog(`Validation Complete. Composite Miner Score (CMS): ${cms.toFixed(4)}`, 'success');
-    setStatus('completed');
-
-    setStats(prev => ({
-      totalTasks: prev.totalTasks + 1,
-      avgCMS: (prev.avgCMS * prev.totalTasks + cms) / (prev.totalTasks + 1),
-      taoEmitted: prev.taoEmitted + (cms * 0.5)
-    }));
-  };
-
-  const startAdversarialDebate = async () => {
-    if (!minerOutput) return;
-    setStatus('debating');
-    addLog("✨ Initializing Adversarial Debate Protocol...");
-
-    const debate = await callGemini(
-      `Challenge this trace: ${JSON.stringify(minerOutput)}.`,
-      "You are simulating the ReasonForge Adversarial Debate process.",
-      null
-    );
-
-    if (debate) {
-      setDebateData(debate);
-      addLog(`Debate concluded. Verdict generated.`, 'success');
-    }
-    setStatus('completed');
-  };
-
-  const generateReport = async () => {
-    if (!validationData || !currentTask) return;
-    setStatus('reporting');
-    addLog("✨ Synthesizing Enterprise Intelligence Report...");
-
-    const report = await callGemini(
-      `Generate professional summary for Task: ${currentTask.problem}.`,
-      "You are the ReasonForge Enterprise Reporting Agent.",
-      null
-    );
-
-    if (report) {
-      setReportData(report);
-      addLog("Enterprise Report generated.", 'success');
-    }
-    setStatus('completed');
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 font-sans p-4 md:p-8">
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        :root {
-          --rf-teal: #00BFA5;
-          --rf-orange: #FF6B35;
-          --rf-purple: #8B5CF6;
-        }
-        .text-rf-teal { color: var(--rf-teal); }
-        .bg-rf-teal { background-color: var(--rf-teal); }
-        .border-rf-teal { border-color: var(--rf-teal); }
-        .text-rf-orange { color: var(--rf-orange); }
-        .bg-rf-orange { background-color: var(--rf-orange); }
-        .text-rf-purple { color: var(--rf-purple); }
-        .bg-rf-purple { background-color: var(--rf-purple); }
-      `}} />
-
+    <div style={{ background: '#0D1B2A', minHeight: '100vh', color: '#E0E6ED', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Header */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2 uppercase">
-            <Brain className="text-rf-teal w-8 h-8" />
-            Reason<span className="text-rf-teal">Forge</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded border ml-2 normal-case tracking-normal ${isSimulation ? 'bg-amber-400/10 text-amber-400 border-amber-400/20' : 'bg-rf-teal/10 text-rf-teal border-rf-teal/20'}`}>
-              {isSimulation ? 'Simulation Mode' : 'Live Network'}
-            </span>
+      <header style={{ background: '#162234', borderBottom: '1px solid #1E3A5F', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>
+            <span style={{ color: '#00BFA5' }}>Reason</span>Forge
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Decentralized Verifiable Reasoning Infrastructure</p>
+          <span style={{ fontSize: '13px', color: '#6B7280', borderLeft: '1px solid #2D3748', paddingLeft: '16px' }}>
+            Decentralized Verifiable Reasoning
+          </span>
         </div>
-
-        <div className="flex gap-3">
-          <div className="flex items-center gap-2 bg-black/40 border border-slate-800 rounded-lg px-4 py-2 text-xs">
-            {isSimulation ? <WifiOff className="w-3 h-3 text-amber-400" /> : <Globe className="w-3 h-3 text-rf-teal" />}
-            <span className={isSimulation ? 'text-amber-400' : 'text-rf-teal'}>
-              {isSimulation ? 'API Key Not Found' : 'API Connection Active'}
-            </span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '14px', color: '#9CA3AF' }}>
+            Epoch: <strong style={{ color: '#00BFA5' }}>{epochCount}</strong>
+          </span>
+          <span style={{ fontSize: '13px', color: '#6B7280' }}>
+            Emission:
+          </span>
+          <input
+            type="number"
+            value={emission}
+            onChange={e => setEmission(Number(e.target.value) || 100)}
+            style={{ width: '70px', background: '#0D1B2A', border: '1px solid #2D3748', color: '#E0E6ED', borderRadius: '4px', padding: '4px 8px', fontSize: '13px' }}
+          />
+          <span style={{ fontSize: '13px', color: '#6B7280' }}>TAO</span>
+          <button onClick={handleRunEpoch} style={{ background: '#00BFA5', color: '#0D1B2A', border: 'none', borderRadius: '6px', padding: '8px 20px', fontWeight: 600, cursor: 'pointer', fontSize: '14px' }}>
+            Run Epoch
+          </button>
           <button
-            onClick={startDemo}
-            disabled={status !== 'idle' && status !== 'completed'}
-            className="flex items-center gap-2 bg-rf-teal hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed text-black font-bold py-2.5 px-6 rounded-lg transition-all shadow-[0_0_20px_rgba(0,191,165,0.2)]"
+            onClick={() => setAutoRun(!autoRun)}
+            style={{ background: autoRun ? '#EF4444' : '#1E3A5F', color: '#E0E6ED', border: '1px solid ' + (autoRun ? '#EF4444' : '#2D3748'), borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '14px' }}
           >
-            {status === 'generating_task' || status === 'mining' || status === 'validating' ? <Activity className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-current" />}
-            {status === 'idle' || status === 'completed' ? "Dispatch Task" : "Forging Logic..."}
+            {autoRun ? 'Stop' : 'Auto-Run'}
+          </button>
+          <button onClick={handleReset} style={{ background: 'transparent', color: '#6B7280', border: '1px solid #2D3748', borderRadius: '6px', padding: '8px 16px', cursor: 'pointer', fontSize: '14px' }}>
+            Reset
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Layout */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* Network Metrics Sidebar */}
-        <div className="lg:col-span-4 space-y-6 flex flex-col h-full">
-          <div className="bg-[#0f1115] border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-hidden group">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-5 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-rf-teal" /> Subnet Metrics
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-black/40 p-4 rounded-xl border border-slate-800/50">
-                <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Epoch Tasks</div>
-                <div className="text-2xl font-bold text-white">{stats.totalTasks}</div>
-              </div>
-              <div className="bg-black/40 p-4 rounded-xl border border-slate-800/50">
-                <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Network CMS</div>
-                <div className="text-2xl font-bold text-rf-teal">{stats.avgCMS.toFixed(3)}</div>
-              </div>
-              <div className="bg-black/40 p-4 rounded-xl border border-slate-800/50 col-span-2 flex justify-between items-center">
-                <div>
-                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">TAO Emitted (Est.)</div>
-                  <div className="text-2xl font-bold text-rf-orange">{stats.taoEmitted.toFixed(4)} <span className="text-sm font-normal opacity-50">τ</span></div>
-                </div>
-                <div className="bg-rf-orange/10 p-2 rounded-full">
-                  <Zap className="w-5 h-5 text-rf-orange" />
-                </div>
-              </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '16px', padding: '16px 24px', maxWidth: '1600px', margin: '0 auto' }}>
+        {/* Left Panel - Miner Leaderboard */}
+        <div>
+          <div style={{ background: '#162234', borderRadius: '8px', border: '1px solid #1E3A5F', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #1E3A5F', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Miner Leaderboard</h2>
+              <span style={{ fontSize: '12px', color: '#6B7280' }}>Click a row for details</span>
             </div>
-          </div>
-
-          <div className="bg-[#0f1115] border border-slate-800 rounded-xl flex-grow overflow-hidden flex flex-col shadow-xl min-h-[300px]">
-            <div className="p-4 border-b border-slate-800 bg-slate-900/40 flex justify-between items-center">
-              <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Terminal className="w-3 h-3 text-rf-teal" /> Protocol Logs
-              </h3>
-            </div>
-            <div
-              ref={scrollRef}
-              className="p-5 font-mono text-[11px] flex-grow overflow-y-auto space-y-2.5"
-            >
-              {logs.map((log, i) => (
-                <div key={i} className={`flex gap-3 leading-relaxed ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-rf-teal' : 'text-slate-400'}`}>
-                  <span className="opacity-30 shrink-0">[{log.timestamp}]</span>
-                  <span>{log.message}</span>
-                </div>
-              ))}
-              {status === 'idle' && <div className="text-slate-700 italic">Waiting for protocol initiation...</div>}
-            </div>
-          </div>
-        </div>
-
-        {/* Task Processing View */}
-        <div className="lg:col-span-8 space-y-6">
-
-          {currentTask && (
-            <div className="bg-[#0f1115] border border-slate-800 rounded-xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-2">
-              <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/20 flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <div className={`p-2.5 rounded-xl bg-slate-800/80 ${TASK_DOMAINS.find(d => d.id === currentTask.domain)?.color}`}>
-                    {TASK_DOMAINS.find(d => d.id === currentTask.domain)?.icon}
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-white text-base">Current Task: {currentTask.domain.toUpperCase()}</h2>
-                    <span className="text-[10px] text-slate-500 font-mono tracking-tighter">TASK_{Math.random().toString(36).substring(7).toUpperCase()}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase">Difficulty</span>
-                  <div className="flex gap-1">
-                    {[...Array(10)].map((_, i) => (
-                      <div key={i} className={`w-1.5 h-4 rounded-full ${i < currentTask.difficulty ? 'bg-rf-teal shadow-[0_0_8px_rgba(0,191,165,0.4)]' : 'bg-slate-800'}`} />
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#0D1B2A' }}>
+                    {['#', 'Name', 'Tier', 'S_epoch', 'PEB', 'Streak', 'Epoch TAO', 'Total TAO', 'Trap'].map(h => (
+                      <th key={h} style={{ padding: '10px 12px', textAlign: 'left', color: '#6B7280', fontWeight: 500, borderBottom: '1px solid #1E3A5F' }}>{h}</th>
                     ))}
-                  </div>
-                </div>
-              </div>
-              <div className="p-8">
-                <p className="text-xl text-slate-100 leading-relaxed font-serif italic">"{currentTask.problem}"</p>
-              </div>
-            </div>
-          )}
-
-          {minerOutput && (
-            <div className="bg-[#0f1115] border border-slate-800 rounded-xl overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/10">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-rf-teal" /> Miner Reasoning Chain
-                </h3>
-              </div>
-              <div className="p-8 space-y-8">
-                {minerOutput.steps.map((step, i) => (
-                  <div key={i} className="flex gap-6 group">
-                    <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center text-xs font-bold text-rf-teal group-hover:bg-rf-teal group-hover:text-black transition-all">
-                        {step.id}
-                      </div>
-                      {i < minerOutput.steps.length - 1 && <div className="w-0.5 h-full bg-slate-800/50 my-2" />}
-                    </div>
-                    <div className="flex-grow pb-8 border-b border-slate-800/30 last:border-0 last:pb-0">
-                      <div className="text-[10px] text-rf-teal font-bold mb-2 uppercase tracking-widest opacity-70">Process Step</div>
-                      <p className="text-slate-300 leading-relaxed text-sm">{step.logic}</p>
-                      {step.evidence && (
-                        <div className="mt-3 text-[11px] bg-black/40 p-3 rounded-lg border border-slate-800/50 text-slate-400 flex items-start gap-2">
-                          <Terminal className="w-3 h-3 shrink-0 mt-0.5 opacity-50" />
-                          <span>Evidence: {step.evidence}</span>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedMiners.map((m, i) => (
+                    <tr
+                      key={m.minerId}
+                      onClick={() => setSelectedMiner(selectedMiner === m.minerId ? null : m.minerId)}
+                      style={{
+                        cursor: 'pointer',
+                        background: selectedMiner === m.minerId ? 'rgba(0,191,165,0.08)' : (i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)'),
+                        borderLeft: selectedMiner === m.minerId ? '3px solid #00BFA5' : '3px solid transparent',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>
+                        {m.rank <= 3 ? <span style={{ color: '#FFD700' }}>{m.rank}</span> : m.rank}
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{m.name}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span style={{ background: TIER_BG[m.tier], color: TIER_COLORS[m.tier], padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>
+                          {m.tier}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '60px', height: '6px', background: '#1E3A5F', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(100, (m.sEpoch / 2) * 100)}%`, height: '100%', background: TIER_COLORS[m.tier], borderRadius: '3px', transition: 'width 0.5s' }} />
+                          </div>
+                          <span>{m.sEpoch.toFixed(4)}</span>
                         </div>
-                      )}
+                      </td>
+                      <td style={{ padding: '10px 12px', color: m.peb > 0 ? '#00BFA5' : '#4B5563' }}>{m.peb.toFixed(4)}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {m.streak > 0 && <span style={{ color: '#F59E0B' }}>{'~'.repeat(Math.min(m.streak, 5))}</span>}
+                        <span style={{ marginLeft: '4px' }}>{m.streak}</span>
+                      </td>
+                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{m.epochTao.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px', color: '#00BFA5', fontWeight: 600 }}>{m.totalTao.toFixed(2)}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        {m.trapPenalty < 1.0
+                          ? <span style={{ color: '#EF4444', fontSize: '11px' }}>! {m.trapPenalty.toFixed(2)}</span>
+                          : <span style={{ color: '#10B981', fontSize: '11px' }}>OK</span>
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Selected Miner Detail */}
+          {selectedMinerData && (
+            <div style={{ background: '#162234', borderRadius: '8px', border: '1px solid #1E3A5F', marginTop: '16px', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: '15px' }}>
+                <span style={{ color: TIER_COLORS[selectedMinerData.tier] }}>{selectedMinerData.name}</span>
+                <span style={{ color: '#6B7280', fontSize: '12px', marginLeft: '8px' }}>Dimension Breakdown (Latest Task)</span>
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                {[
+                  { label: 'Quality', value: selectedMinerData.quality, weight: W_QUALITY, color: '#60A5FA' },
+                  { label: 'Accuracy', value: selectedMinerData.accuracy, weight: W_ACCURACY, color: '#34D399' },
+                  { label: 'Novelty', value: selectedMinerData.novelty, weight: W_NOVELTY, color: '#A78BFA' },
+                  { label: 'Efficiency', value: selectedMinerData.efficiency, weight: W_EFFICIENCY, color: '#FB923C' },
+                ].map(d => (
+                  <div key={d.label} style={{ background: '#0D1B2A', borderRadius: '6px', padding: '12px' }}>
+                    <div style={{ fontSize: '11px', color: '#6B7280', marginBottom: '4px' }}>{d.label} (w={d.weight})</div>
+                    <div style={{ fontSize: '20px', fontWeight: 700, color: d.color }}>{d.value.toFixed(3)}</div>
+                    <div style={{ height: '4px', background: '#1E3A5F', borderRadius: '2px', marginTop: '6px' }}>
+                      <div style={{ width: `${d.value * 100}%`, height: '100%', background: d.color, borderRadius: '2px', transition: 'width 0.3s' }} />
                     </div>
                   </div>
                 ))}
-
-                <div className="mt-6 p-6 bg-rf-teal/5 border border-rf-teal/20 rounded-xl shadow-inner">
-                  <p className="text-white text-lg font-medium leading-snug">{minerOutput.final_answer}</p>
-                </div>
+              </div>
+              <div style={{ marginTop: '12px', fontSize: '13px', color: '#9CA3AF' }}>
+                CMS = {W_QUALITY}*{selectedMinerData.quality.toFixed(3)} + {W_ACCURACY}*{selectedMinerData.accuracy.toFixed(3)} + {W_NOVELTY}*{selectedMinerData.novelty.toFixed(3)} + {W_EFFICIENCY}*{selectedMinerData.efficiency.toFixed(3)} = <strong style={{ color: '#00BFA5' }}>{computeCMS(selectedMinerData.quality, selectedMinerData.accuracy, selectedMinerData.novelty, selectedMinerData.efficiency).toFixed(4)}</strong>
               </div>
             </div>
           )}
 
-          {validationData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#0f1115] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-1000 border-t-rf-orange/30">
-                <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/30 flex justify-between items-center">
-                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-rf-orange" /> Protocol Consensus
-                  </h3>
+          {/* TAO Distribution Chart */}
+          {epochCount > 0 && (
+            <div style={{ background: '#162234', borderRadius: '8px', border: '1px solid #1E3A5F', marginTop: '16px', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: '15px' }}>TAO Distribution</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={barData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6B7280' }} angle={-30} textAnchor="end" height={60} />
+                  <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} />
+                  <Tooltip
+                    contentStyle={{ background: '#162234', border: '1px solid #1E3A5F', borderRadius: '6px', fontSize: '12px' }}
+                    labelStyle={{ color: '#E0E6ED' }}
+                  />
+                  <Bar dataKey="reward" name="Epoch TAO" stackId="a">
+                    {barData.map((entry, idx) => (
+                      <Cell key={idx} fill={TIER_COLORS[entry.tier] || '#6B7280'} fillOpacity={0.7} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Epoch History Line Chart */}
+          {lineData.length > 1 && (
+            <div style={{ background: '#162234', borderRadius: '8px', border: '1px solid #1E3A5F', marginTop: '16px', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: '15px' }}>S_epoch Trends Over Time</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={lineData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1E3A5F" />
+                  <XAxis dataKey="epoch" tick={{ fontSize: 11, fill: '#6B7280' }} />
+                  <YAxis tick={{ fontSize: 11, fill: '#6B7280' }} />
+                  <Tooltip
+                    contentStyle={{ background: '#162234', border: '1px solid #1E3A5F', borderRadius: '6px', fontSize: '11px' }}
+                    labelStyle={{ color: '#E0E6ED' }}
+                  />
+                  {DEFAULT_MINERS.slice(0, 6).map((m, i) => (
+                    <Line
+                      key={m.id}
+                      type="monotone"
+                      dataKey={m.name}
+                      stroke={TIER_COLORS[m.tier]}
+                      strokeWidth={m.tier === 'elite' ? 2 : 1}
+                      dot={false}
+                      strokeOpacity={0.8}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '8px' }}>
+                {DEFAULT_MINERS.slice(0, 6).map(m => (
+                  <span key={m.id} style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ width: '10px', height: '3px', background: TIER_COLORS[m.tier], display: 'inline-block', borderRadius: '2px' }} />
+                    <span style={{ color: '#9CA3AF' }}>{m.name}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel */}
+        <div>
+          {/* Epoch Stats */}
+          <div style={{ background: '#162234', borderRadius: '8px', border: '1px solid #1E3A5F', padding: '20px', marginBottom: '16px' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '15px' }}>Epoch Stats</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {[
+                { label: 'Tasks Processed', value: stats.tasksProcessed, color: '#60A5FA' },
+                { label: 'Traps Injected', value: stats.trapsInjected, color: '#F59E0B' },
+                { label: 'Breakthroughs', value: stats.breakthroughs, color: '#A78BFA' },
+                { label: 'Avg CMS', value: stats.avgCms.toFixed(4), color: '#00BFA5' },
+              ].map(s => (
+                <div key={s.label} style={{ background: '#0D1B2A', borderRadius: '6px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#6B7280', marginBottom: '4px' }}>{s.label}</div>
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: s.color }}>{s.value}</div>
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center gap-8 mb-8">
-                    <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
-                      <svg className="w-full h-full -rotate-90">
-                        <circle cx="48" cy="48" r="42" fill="none" stroke="#1e293b" strokeWidth="8" />
-                        <circle
-                          cx="48" cy="48" r="42" fill="none" stroke="#00BFA5" strokeWidth="8"
-                          strokeDasharray={263.8}
-                          strokeDashoffset={263.8 * (1 - (validationData.cms || 0))}
-                          strokeLinecap="round"
-                          className="transition-all duration-[2000ms] ease-out"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-black text-white">{(validationData.cms || 0).toFixed(2)}</span>
-                        <span className="text-[8px] font-black text-slate-500 uppercase mt-0.5">CMS</span>
-                      </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+              <div style={{ background: '#0D1B2A', borderRadius: '4px', padding: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#6B7280' }}>Miner Pool</span>
+                <span style={{ color: '#00BFA5' }}>{(emission * EMISSION_MINER_SHARE).toFixed(1)} TAO</span>
+              </div>
+              <div style={{ background: '#0D1B2A', borderRadius: '4px', padding: '8px', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#6B7280' }}>Validator Pool</span>
+                <span style={{ color: '#00BFA5' }}>{(emission * EMISSION_VALIDATOR_SHARE).toFixed(1)} TAO</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Validator Health */}
+          <div style={{ background: '#162234', borderRadius: '8px', border: '1px solid #1E3A5F', padding: '20px', marginBottom: '16px' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: '15px' }}>Validator Health</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {validators.map(v => (
+                <div key={v.validatorId} style={{ background: '#0D1B2A', borderRadius: '6px', padding: '12px', borderLeft: `3px solid ${vasColor(v.vas)}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '13px' }}>{v.name}</span>
+                      <span style={{ fontSize: '11px', color: '#6B7280', marginLeft: '8px' }}>
+                        Stake: {v.stake.toLocaleString()}
+                      </span>
                     </div>
-                    <div className="flex-grow space-y-3">
-                      {[{ l: 'Accuracy', v: validationData.scores.A }, { l: 'Logic', v: validationData.scores.C }, { l: 'Novelty', v: validationData.scores.N }].map((s, idx) => (
-                        <div key={idx} className="space-y-1">
-                          <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider">
-                            <span className="text-slate-500">{s.l}</span>
-                            <span className="text-rf-teal">{(s.v * 100).toFixed(0)}%</span>
-                          </div>
-                          <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-rf-teal" style={{ width: `${s.v * 100}%` }} />
-                          </div>
-                        </div>
-                      ))}
+                    <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', background: vasColor(v.vas) + '20', color: vasColor(v.vas), fontWeight: 600 }}>
+                      {vasLabel(v.vas)}
+                    </span>
+                  </div>
+                  {/* VAS Gauge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', color: '#6B7280', width: '30px' }}>VAS</span>
+                    <div style={{ flex: 1, height: '6px', background: '#1E3A5F', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${v.vas * 100}%`, height: '100%', background: vasColor(v.vas), borderRadius: '3px', transition: 'all 0.5s' }} />
                     </div>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: vasColor(v.vas), width: '50px', textAlign: 'right' }}>{v.vas.toFixed(4)}</span>
                   </div>
-                  <p className="text-xs text-slate-500 leading-relaxed font-serif italic border-l-2 border-rf-orange/30 pl-4 py-1">
-                    "{validationData.critique}"
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#6B7280' }}>
+                    <span>Rep: x{v.repMult.toFixed(3)}</span>
+                    <span>TAO: {v.epochTao.toFixed(2)}</span>
+                    <span>Total: {v.totalTao.toFixed(2)}</span>
+                    {v.slashed > 0 && <span style={{ color: '#EF4444' }}>Slashed: {v.slashed.toFixed(4)}</span>}
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <button
-                  onClick={startAdversarialDebate}
-                  disabled={status === 'debating' || !!debateData}
-                  className="flex-grow flex items-center justify-center gap-3 bg-rf-purple/10 border border-rf-purple/30 hover:bg-rf-purple/20 text-rf-purple rounded-xl p-6 transition-all group disabled:opacity-50"
-                >
-                  {status === 'debating' ? <Activity className="w-6 h-6 animate-spin" /> : <ShieldAlert className="w-6 h-6 group-hover:scale-110 transition-transform" />}
-                  <div className="text-left">
-                    <div className="font-bold text-sm uppercase tracking-widest">✨ Challenge Trace</div>
-                    <div className="text-[10px] opacity-70">Trigger Adversarial Debate</div>
-                  </div>
-                </button>
-                <button
-                  onClick={generateReport}
-                  disabled={status === 'reporting' || !!reportData}
-                  className="flex-grow flex items-center justify-center gap-3 bg-rf-teal/10 border border-rf-teal/30 hover:bg-rf-teal/20 text-rf-teal rounded-xl p-6 transition-all group disabled:opacity-50"
-                >
-                  {status === 'reporting' ? <Activity className="w-6 h-6 animate-spin" /> : <FileText className="w-6 h-6 group-hover:scale-110 transition-transform" />}
-                  <div className="text-left">
-                    <div className="font-bold text-sm uppercase tracking-widest">✨ Export Intelligence</div>
-                    <div className="text-[10px] opacity-70">Generate Business Report</div>
-                  </div>
-                </button>
-              </div>
+              ))}
             </div>
-          )}
+          </div>
 
-          {debateData && (
-            <div className="bg-[#0f1115] border border-rf-purple/30 rounded-2xl overflow-hidden shadow-2xl animate-in slide-in-from-right-4 duration-500">
-              <div className="px-6 py-4 border-b border-rf-purple/20 bg-rf-purple/5 flex justify-between items-center">
-                <h3 className="text-xs font-bold text-rf-purple uppercase tracking-widest flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4" /> Adversarial Debate Loop
-                </h3>
-              </div>
-              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <div className="text-[10px] font-bold text-rf-orange uppercase tracking-widest">Adversary Challenge</div>
-                  <div className="bg-rf-orange/5 border border-rf-orange/20 p-4 rounded-lg text-xs leading-relaxed text-slate-300">
-                    {debateData.challenge}
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="text-[10px] font-bold text-rf-teal uppercase tracking-widest">Miner Rebuttal</div>
-                  <div className="bg-rf-teal/5 border border-rf-teal/20 p-4 rounded-lg text-xs leading-relaxed text-slate-300">
-                    {debateData.rebuttal}
-                  </div>
-                </div>
-                <div className="md:col-span-2 pt-4 border-t border-slate-800">
-                  <p className="text-sm font-bold text-white uppercase">{debateData.verdict}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {reportData && (
-            <div className="bg-[#0f1115] border border-rf-teal/30 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-500">
-              <div className="px-6 py-4 border-b border-rf-teal/20 bg-rf-teal/5 flex justify-between items-center">
-                <h3 className="text-xs font-bold text-rf-teal uppercase tracking-widest flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> Enterprise Intelligence Report
-                </h3>
-                <span className="text-[10px] font-bold text-rf-teal">CONFIDENCE: {reportData.confidence_level}</span>
-              </div>
-              <div className="p-8 space-y-6">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Executive Summary</h4>
-                  <p className="text-sm text-slate-300 leading-relaxed font-serif">{reportData.summary}</p>
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Strategic Impact</h4>
-                  <p className="text-sm text-slate-400 italic">"{reportData.business_impact}"</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!currentTask && (
-            <div className="flex flex-col items-center justify-center py-40 text-center space-y-6 opacity-30">
-              <Database className="w-20 h-20 text-slate-800" />
+          {/* CMS Formula Display */}
+          <div style={{ background: '#162234', borderRadius: '8px', border: '1px solid #1E3A5F', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: '15px' }}>CMS Formula (Eq. 2)</h3>
+            <div style={{ fontFamily: 'monospace', fontSize: '13px', background: '#0D1B2A', padding: '12px', borderRadius: '6px', lineHeight: 1.8 }}>
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-white">Subnet Idle</h2>
-                <p className="text-slate-500 max-w-xs mx-auto">Click "Dispatch Task" to initiate the verifiable reasoning lifecycle.</p>
+                CMS(m,t) = <span style={{ color: '#60A5FA' }}>{W_QUALITY}</span>*Q +{' '}
+                <span style={{ color: '#34D399' }}>{W_ACCURACY}</span>*A +{' '}
+                <span style={{ color: '#A78BFA' }}>{W_NOVELTY}</span>*N +{' '}
+                <span style={{ color: '#FB923C' }}>{W_EFFICIENCY}</span>*Eff
+              </div>
+              <div style={{ marginTop: '8px', color: '#6B7280', fontSize: '11px' }}>
+                S_epoch = (1/|T|) * SUM(CMS * D(t)) * trap_penalty
+              </div>
+              <div style={{ color: '#6B7280', fontSize: '11px' }}>
+                PEB = {PEB_ALPHA} * (1/rank) * sqrt(min(streak, {PEB_STREAK_CAP}))
+              </div>
+              <div style={{ color: '#6B7280', fontSize: '11px' }}>
+                R(m) = E_miner * [S * (1+PEB)] / SUM[S * (1+PEB)]
               </div>
             </div>
-          )}
-
+            <div style={{ marginTop: '12px', fontSize: '11px', color: '#4B5563' }}>
+              <div>Emission Split: Miners {EMISSION_MINER_SHARE * 100}% | Validators {EMISSION_VALIDATOR_SHARE * 100}%</div>
+              <div>Trap Rate: {TRAP_RATE * 100}% | Breakthrough: x{BREAKTHROUGH_MULTIPLIER} (CMS {'>'} {BREAKTHROUGH_THRESHOLD})</div>
+              <div>Slash: gamma={VAS_SLASH_GAMMA} * stake * (theta - VAS_7d)^2</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default App;
+}

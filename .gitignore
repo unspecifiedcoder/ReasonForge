@@ -31,3 +31,20 @@ next-env.d.ts
 # build log
 build_log.txt
 errors.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.env
+
+# Simulation output
+simulation/*.json
+
+# IDE
+.vscode/
+.idea/

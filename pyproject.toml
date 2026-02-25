@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "reasonforge"
+version = "0.1.0"
+description = "The Decentralized Marketplace for Verifiable Intelligence"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100.0", "uvicorn>=0.23.0"]
+dev = ["pytest>=7.0.0"]
+all = ["fastapi>=0.100.0", "uvicorn>=0.23.0", "pytest>=7.0.0"]
+
+[project.scripts]
+reasonforge = "reasonforge.run:main"
