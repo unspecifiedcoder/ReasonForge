@@ -1,202 +1,126 @@
 <div align="center">
 
-# ReasonForge
+# 🌌 ReasonForge
+### The Decentralized Marketplace for Verifiable Intelligence
+**A Bittensor Subnet Proposal | Subnet Ideathon Round I**
 
-**The Decentralized Marketplace for Verifiable Intelligence**
-*A Bittensor Subnet Proposal -- Subnet Ideathon Round I*
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![React](https://img.shields.io/badge/Frontend-React-61dafb.svg)](https://reactjs.org/)
+[![FastAPI](https://img.shields.io/badge/API-FastAPI-009688.svg)](https://fastapi.tiangolo.com/)
 
-[Live Dashboard](https://reasonforge-app.vercel.app) | [GitHub Source](https://github.com/unspecifiedcoder/ReasonForge)
+[**Live Dashboard**](https://reasonforge-app.vercel.app) • [**Technical Documentation**](docs/ARCHITECTURE.md) • [**GitHub Source**](https://github.com/unspecifiedcoder/ReasonForge)
+
+---
 
 </div>
 
+## 📖 Overview
+
+**ReasonForge** is a next-generation Bittensor subnet designed to incentivize **structured, auditable reasoning chains**. While existing AI subnets often prioritize raw generation speed or generic quality, ReasonForge focuses on the *integrity of the thought process*.
+
+By leveraging a mathematically rigorous protocol, ReasonForge transforms raw compute into **Verifiable Intelligence**. Whether it's complex logical proofs, causal inference, or high-stakes financial modeling, ReasonForge ensure that every answer is backed by a transparent, verifiable chain of logic.
+
+### 🎯 Key Pillars
+- **Verifiable Chains**: Every response includes an auditable reasoning path.
+- **Mathematical Rigor**: 13 unique formulas governing every aspect of the network.
+- **Validator Accountability**: Quadratic slashing and reputation-weighted rewards.
+- **Trap Detection**: Integrated mechanisms to catch lazy or malicious actors.
+
 ---
 
-## What is ReasonForge?
+## 🛠️ Quick Start
 
-ReasonForge is a Bittensor subnet proposal for a decentralized marketplace for verifiable multi-step reasoning. Unlike existing AI subnets that reward raw generation, ReasonForge incentivizes **structured, auditable reasoning chains** across mathematics, code, science, strategy, causal inference, and ethics.
+Experience the power of the ReasonForge protocol locally in minutes.
 
-The protocol implements 13 mathematically rigorous formulas covering scoring, emissions, trap detection, plagiarism prevention, and validator accountability. Every answer comes with a traceable reasoning chain that can be independently verified, making it suitable for high-stakes deployment in legal, financial, and scientific markets.
-
----
-
-## Quick Start
-
-### Run the Simulator
+### 1. 🧬 Simulation Environment
+Clone the repository and install the core protocol package:
 ```bash
 pip install -e .
 python -m reasonforge.run --epochs 10 --emission 100 --output results.json --seed 42
 ```
 
-### Launch the API
+### 2. ⚡ Developer API
+Spin up the FastAPI server to interface with the simulation engine:
 ```bash
 pip install fastapi uvicorn
 uvicorn api.server:app --reload --port 8000
 ```
 
-### Run the Dashboard
+### 3. 🎨 Interactive Dashboard
+Launch the high-fidelity visualization suite:
 ```bash
 npm install
 npm run dev
 ```
 
-### Run Tests
-```bash
-pytest tests/ -v
-```
+---
+
+## 🏗️ System Architecture
+
+ReasonForge is built on a modular "Separation of Concerns" architecture, ensuring scalability and ease of integration.
+
+| Component | Tech Stack | Responsibility |
+|:---|:---|:---|
+| **Core Engine** | `Python` | Implementation of all 13 whitepaper formulas. |
+| **Epoch Simulator** | `Python` | Full-cycle network simulation (Miners/Validators). |
+| **Interactive UI** | `React/TS` | Real-time visualization of network health and rewards. |
+| **Plagiarism Guard** | `Python` | Jaccard-based similarity detection for network integrity. |
+| **Validation Layer** | `Pytest` | Comprehensive suite of 60+ tests for formula accuracy. |
 
 ---
 
-## Architecture
+## 📐 The Mathematical Core
 
-The MVP consists of 7 components:
+ReasonForge is governed by 13 core formulas that ensure game-theoretic stability and fairness.
 
-| Component | Description |
-|-----------|-------------|
-| **Core Engine** | All 13 whitepaper formulas as stateless Python functions |
-| **Epoch Simulator** | Full lifecycle simulation with 12 miners and 6 validators |
-| **Interactive Dashboard** | React/TypeScript visualization with embedded JS simulation engine |
-| **CLI Runner** | Terminal-based multi-epoch simulation with rich output |
-| **Test Suite** | 67 unit and integration tests validating every formula |
-| **API Server** | FastAPI REST endpoint serving simulation data |
-| **Plagiarism Detector** | Jaccard similarity-based duplicate submission detection |
+### 💎 Composite Miner Score (CMS)
+$$CMS = 0.40Q + 0.30A + 0.15N + 0.15Eff$$
+- **Q**: Path Quality
+- **A**: Accuracy
+- **N**: Novelty
+- **Eff**: Efficiency
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed technical documentation.
+### ⚖️ Validator Accuracy (VAS)
+$$VAS = 1 - \text{mean}(|v_{\text{score}} - \text{consensus}|)$$
 
----
-
-## Mechanism Design — 13 Formulas
-
-| # | Formula | Description |
-|---|---------|-------------|
-| Eq.1 | `E = 0.90*E_miner + 0.10*E_validator` | Emission split between miners and validators |
-| Eq.2 | `CMS = 0.40*Q + 0.30*A + 0.15*N + 0.15*Eff` | Composite Miner Score across 4 dimensions |
-| Eq.3 | `S_epoch = mean(CMS * D(t)) * trap_penalty` | Difficulty-weighted epoch score |
-| Eq.4 | `PEB = 0.20 * (1/rank) * sqrt(min(streak, 10))` | Persistent Excellence Bonus for top miners |
-| Eq.5 | `R(m) = E_miner * [S*(1+PEB)] / sum[S*(1+PEB)]` | Final miner reward (emission-conserving) |
-| Eq.6 | `CMS_bt = CMS * 2.0` | Breakthrough multiplier for unsolved tasks |
-| Eq.7 | `VAS = 1 - mean(|v_score - consensus|)` | Validator Accuracy Score |
-| Eq.8 | `R_v = E_val * [VAS*stake*rep] / sum[...]` | Validator reward (stake + reputation weighted) |
-| Eq.9 | `penalty = max(0, avg_trap / 0.30)` | Trap penalty for poor performance on known tasks |
-| Eq.10 | `slash = 0.05 * stake * (0.60 - VAS_7d)^2` | Quadratic slashing for inaccurate validators |
-| Eq.11 | `O_score = sum(w_k * check_k)` | Domain-specific objective score |
-| Eq.12 | `C_score = TrimmedMedian(stake-weighted)` | Consensus score via trimmed median |
-| Eq.13 | `Final = 0.60*O + 0.40*C` | Blended final score |
+### 🛡️ Quadratic Slashing
+$$Slash = 0.05 \times \text{Stake} \times (0.60 - VAS_{7d})^2$$
 
 ---
 
-## Protocol Constants
+## 👥 Network Profiles
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `W_QUALITY` | 0.40 | CMS quality weight |
-| `W_ACCURACY` | 0.30 | CMS accuracy weight |
-| `W_NOVELTY` | 0.15 | CMS novelty weight |
-| `W_EFFICIENCY` | 0.15 | CMS efficiency weight |
-| `EMISSION_MINER_SHARE` | 0.90 | 90% of emissions to miners |
-| `EMISSION_VALIDATOR_SHARE` | 0.10 | 10% of emissions to validators |
-| `PEB_ALPHA` | 0.20 | PEB coefficient |
-| `PEB_K` | 10 | Top-K miners eligible for PEB |
-| `BREAKTHROUGH_MULTIPLIER` | 2.0 | Multiplier for solving unsolved tasks |
-| `TRAP_RATE` | 0.15 | 15% of tasks are traps |
-| `VAS_SLASH_THRESHOLD` | 0.60 | VAS below this triggers slashing |
-| `SIMILARITY_THRESHOLD` | 0.95 | Plagiarism detection threshold |
+### ⛏️ Simulated Miners
+We simulate a diverse range of 12 miners to test protocol resilience:
+- **Elite (m-001, m-002)**: High-performance reasoning nodes.
+- **Adversarial (m-011, m-012)**: Testing plagiarism and spam detection.
+
+### 🛡️ Simulated Validators
+6 distinct validator archetypes:
+- **Honest (v-001, v-002)**: High stake, high accuracy.
+- **Lazy/Malicious (v-005, v-006)**: Triggering slashing and penalty mechanisms.
 
 ---
 
-## Project Structure
+## 🛣️ Roadmap
 
-```
-reasonforge/
-├── README.md
-├── PLAN.md                     # Build specification
-├── pyproject.toml              # Python project config
-├── requirements.txt
-├── .gitignore
-├── app.tsx                     # Interactive dashboard (React/TypeScript)
-├── main.tsx                    # React entry point
-├── index.html / index.css      # Frontend assets
-├── package.json                # Node.js dependencies
-│
-├── reasonforge/                # Core Python package
-│   ├── __init__.py
-│   ├── types.py                # Data structures + protocol constants
-│   ├── engine.py               # Scoring engine (13 formulas)
-│   ├── simulator.py            # Epoch simulator
-│   ├── plagiarism.py           # Similarity detection
-│   ├── task_generator.py       # Task templates
-│   └── run.py                  # CLI entry point
-│
-├── api/                        # FastAPI server
-│   └── server.py               # REST API
-│
-├── dashboard/                  # Standalone dashboard component
-│   └── App.jsx
-│
-├── tests/                      # Test suite (67 tests)
-│   ├── test_engine.py
-│   ├── test_simulator.py
-│   └── test_types.py
-│
-├── simulation/                 # Output directory
-│   └── .gitkeep
-│
-└── docs/
-    └── ARCHITECTURE.md
-```
+- [x] **Phase 1**: Core Mathematical Engine & 13 Formulas.
+- [x] **Phase 2**: Multi-Epoch Simulator & CLI.
+- [x] **Phase 3**: FastAPI Integration & SSE Streaming.
+- [wip] **Phase 4**: Mainchain Integration & Bittensor Onboarding.
 
 ---
 
-## Miner & Validator Profiles
+## 📜 License & Acknowledgments
 
-### 12 Simulated Miners
-
-| ID | Name | Tier | Base Quality | Base Accuracy |
-|----|------|------|-------------|---------------|
-| m-001 | DeepReason-v3 | Elite | 0.88 | 0.90 |
-| m-002 | LogicForge-7B | Elite | 0.88 | 0.90 |
-| m-003 | ProofMaster | Strong | 0.78 | 0.80 |
-| m-004 | ReasonSwarm | Strong | 0.78 | 0.80 |
-| m-005 | CausalNet | Strong | 0.78 | 0.80 |
-| m-006 | ThinkChain | Mid | 0.65 | 0.68 |
-| m-007 | InferBot | Mid | 0.65 | 0.68 |
-| m-008 | NovaMind | Mid | 0.65 | 0.68 |
-| m-009 | BasicReasoner | Weak | 0.45 | 0.50 |
-| m-010 | CheapInference | Weak | 0.45 | 0.50 |
-| m-011 | SpamBot-X | Adversarial | 0.20 | 0.15 |
-| m-012 | CopyCat-3 | Adversarial | 0.20 | 0.15 |
-
-### 6 Simulated Validators
-
-| ID | Name | Stake | Profile | Noise | Bias |
-|----|------|-------|---------|-------|------|
-| v-001 | TruthGuard | 5000 | Honest | 0.03 | 0.0 |
-| v-002 | AccuScore | 3000 | Honest | 0.03 | 0.0 |
-| v-003 | FairCheck | 4000 | Good | 0.06 | 0.0 |
-| v-004 | QuickVal | 2000 | Good | 0.06 | 0.0 |
-| v-005 | LazyNode | 1500 | Lazy | 0.15 | -0.10 |
-| v-006 | BadActor | 1000 | Malicious | 0.25 | +0.20 |
-
----
-
-## API Endpoints
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check |
-| POST | `/api/simulate` | Run N epochs, return full results |
-| GET | `/api/simulate/stream` | SSE stream, one epoch at a time |
-| GET | `/api/constants` | All protocol constants |
-| GET | `/api/formulas` | Formula descriptions as JSON |
-
----
-
-## License
-
-MIT
-
----
+This project is licensed under the **MIT License**.
 
 <div align="center">
-  <p>Built by <strong>RAVI SHANKAR BEJINI</strong></p>
-  <p><i>The Decentralized Marketplace for Verifiable Intelligence</i></p>
+
+**Developed with ❤️ by RAVI SHANKAR BEJINI**
+*Empowering the world with Verifiable Intelligence*
+
+[**Contact**](mailto:your-email@example.com) | [**LinkedIn**](https://linkedin.com/in/your-profile) | [**Twitter**](https://twitter.com/your-handle)
+
 </div>
