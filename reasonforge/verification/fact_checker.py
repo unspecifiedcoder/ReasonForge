@@ -74,7 +74,9 @@ class FactChecker:
 
         # Check for standard citation formats
         # APA-like: (Author, Year)
-        apa_citations = re.findall(r"\([A-Z][a-z]+(?:\s+(?:et\s+al\.?|&\s+[A-Z][a-z]+))?,\s*\d{4}\)", text)
+        apa_citations = re.findall(
+            r"\([A-Z][a-z]+(?:\s+(?:et\s+al\.?|&\s+[A-Z][a-z]+))?,\s*\d{4}\)", text
+        )
         if apa_citations:
             score += min(0.4, len(apa_citations) * 0.1)
 
@@ -84,8 +86,14 @@ class FactChecker:
             score += min(0.3, len(numbered_citations) * 0.05)
 
         # General reference indicators
-        ref_indicators = ["according to", "study shows", "research indicates",
-                         "et al.", "published in", "journal of"]
+        ref_indicators = [
+            "according to",
+            "study shows",
+            "research indicates",
+            "et al.",
+            "published in",
+            "journal of",
+        ]
         for indicator in ref_indicators:
             if indicator.lower() in text.lower():
                 score += 0.05
@@ -104,9 +112,18 @@ class FactChecker:
 
         # Check for methodological rigor
         methodology_keywords = [
-            "hypothesis", "method", "result", "conclusion",
-            "control", "variable", "experiment", "observation",
-            "data", "analysis", "significant", "evidence",
+            "hypothesis",
+            "method",
+            "result",
+            "conclusion",
+            "control",
+            "variable",
+            "experiment",
+            "observation",
+            "data",
+            "analysis",
+            "significant",
+            "evidence",
         ]
         found = sum(1 for kw in methodology_keywords if kw in text_lower)
         score += min(0.4, found * 0.05)
@@ -117,8 +134,19 @@ class FactChecker:
             score += min(0.2, len(numbers) * 0.02)
 
         # Check for units
-        units = ["kg", "m/s", "mol", "kelvin", "joule", "watt", "newton",
-                "pascal", "hertz", "volt", "ampere"]
+        units = [
+            "kg",
+            "m/s",
+            "mol",
+            "kelvin",
+            "joule",
+            "watt",
+            "newton",
+            "pascal",
+            "hertz",
+            "volt",
+            "ampere",
+        ]
         for unit in units:
             if unit in text_lower:
                 score += 0.03

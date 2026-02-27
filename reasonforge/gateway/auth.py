@@ -77,7 +77,9 @@ class APIKeyManager:
         if info.requests_used >= info.requests_limit:
             logger.warning(
                 "API key %s exceeded quota (%d/%d)",
-                info.key_id, info.requests_used, info.requests_limit,
+                info.key_id,
+                info.requests_used,
+                info.requests_limit,
             )
             return None
 

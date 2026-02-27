@@ -16,11 +16,11 @@ logger = logging.getLogger("reasonforge.security.sanitizer")
 class InputSanitizer:
     """Validate and sanitize all inputs from miners and external API."""
 
-    MAX_STEP_LENGTH = 10_000     # chars per reasoning step
-    MAX_STEPS = 50               # max steps per submission
-    MAX_ANSWER_LENGTH = 50_000   # chars
-    MAX_PROOF_SIZE = 1_000_000   # bytes (1MB)
-    MAX_CODE_SIZE = 500_000      # bytes (500KB)
+    MAX_STEP_LENGTH = 10_000  # chars per reasoning step
+    MAX_STEPS = 50  # max steps per submission
+    MAX_ANSWER_LENGTH = 50_000  # chars
+    MAX_PROOF_SIZE = 1_000_000  # bytes (1MB)
+    MAX_CODE_SIZE = 500_000  # bytes (500KB)
     MAX_PROBLEM_LENGTH = 10_000  # chars
 
     @staticmethod
@@ -32,18 +32,18 @@ class InputSanitizer:
         # 1. Truncate reasoning steps
         if hasattr(response, "reasoning_steps") and response.reasoning_steps:
             if len(response.reasoning_steps) > InputSanitizer.MAX_STEPS:
-                response.reasoning_steps = response.reasoning_steps[:InputSanitizer.MAX_STEPS]
+                response.reasoning_steps = response.reasoning_steps[: InputSanitizer.MAX_STEPS]
                 logger.warning("Truncated steps from submission")
 
             for step in response.reasoning_steps:
                 if isinstance(step, dict):
                     reasoning = step.get("reasoning", "")
                     if len(reasoning) > InputSanitizer.MAX_STEP_LENGTH:
-                        step["reasoning"] = reasoning[:InputSanitizer.MAX_STEP_LENGTH]
+                        step["reasoning"] = reasoning[: InputSanitizer.MAX_STEP_LENGTH]
 
                     evidence = step.get("evidence", "")
                     if len(evidence) > InputSanitizer.MAX_STEP_LENGTH:
-                        step["evidence"] = evidence[:InputSanitizer.MAX_STEP_LENGTH]
+                        step["evidence"] = evidence[: InputSanitizer.MAX_STEP_LENGTH]
 
                     # Sanitize confidence to valid range
                     conf = step.get("confidence", 0.0)
@@ -52,7 +52,7 @@ class InputSanitizer:
         # 2. Truncate final answer
         if hasattr(response, "final_answer") and response.final_answer:
             if len(response.final_answer) > InputSanitizer.MAX_ANSWER_LENGTH:
-                response.final_answer = response.final_answer[:InputSanitizer.MAX_ANSWER_LENGTH]
+                response.final_answer = response.final_answer[: InputSanitizer.MAX_ANSWER_LENGTH]
 
         # 3. Validate proof artifact size
         if hasattr(response, "proof_artifact") and response.proof_artifact:
@@ -81,7 +81,7 @@ class InputSanitizer:
             return ""
 
         # Truncate
-        problem = problem[:InputSanitizer.MAX_PROBLEM_LENGTH]
+        problem = problem[: InputSanitizer.MAX_PROBLEM_LENGTH]
 
         # Remove potential injection patterns
         # Remove script tags

@@ -87,7 +87,10 @@ TRAP_TEMPLATES = {
         ("In a zero-sum game with payoff matrix [[1,-1],[-1,1]], find the Nash equilibrium.", 0.9),
     ],
     Domain.CAUSAL: [
-        ("In X->Y with no confounders, what is the adjustment set for estimating causal effect?", 0.95),
+        (
+            "In X->Y with no confounders, what is the adjustment set for estimating causal effect?",
+            0.95,
+        ),
     ],
     Domain.ETHICAL: [
         ("List three major ethical frameworks used in moral philosophy.", 0.9),
@@ -116,7 +119,9 @@ class TaskGenerator:
         # Generate trap tasks
         for _ in range(trap_count):
             domain = self.rng.choice(list(Domain))
-            trap_templates: List[Tuple[str, float]] = TRAP_TEMPLATES.get(domain, TRAP_TEMPLATES[Domain.MATHEMATICS])
+            trap_templates: List[Tuple[str, float]] = TRAP_TEMPLATES.get(
+                domain, TRAP_TEMPLATES[Domain.MATHEMATICS]
+            )
             problem, truth = self.rng.choice(trap_templates)
             task = Task(
                 task_id=str(uuid.uuid4()),

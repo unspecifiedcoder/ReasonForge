@@ -13,6 +13,7 @@ from typing import Optional
 
 try:
     import structlog
+
     HAS_STRUCTLOG = True
 except ImportError:
     HAS_STRUCTLOG = False
@@ -61,9 +62,7 @@ def setup_logging(
         return log
     else:
         # Fallback: standard logging
-        formatter = logging.Formatter(
-            "%(asctime)s | %(name)s | %(levelname)s | %(message)s"
-        )
+        formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
 
         # Console handler
         console_handler = logging.StreamHandler(sys.stdout)

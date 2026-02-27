@@ -30,6 +30,7 @@ def temp_db_path():
 def sample_task():
     """Create a sample task for testing."""
     from reasonforge.types import Domain, Task, TaskSource
+
     return Task(
         task_id="test-task-001",
         problem="Prove that sqrt(2) is irrational.",
@@ -44,6 +45,7 @@ def sample_task():
 def sample_trap_task():
     """Create a sample trap task for testing."""
     from reasonforge.types import Domain, Task, TaskSource
+
     return Task(
         task_id="test-trap-001",
         problem="What is 2+2?",
@@ -59,6 +61,7 @@ def sample_trap_task():
 def sample_reasoning_response():
     """Create a sample ReasoningTask response."""
     from reasonforge.protocol import ReasoningTask
+
     return ReasoningTask(
         task_id="test-task-001",
         problem="Prove that sqrt(2) is irrational.",

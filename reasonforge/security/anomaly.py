@@ -38,7 +38,9 @@ class AnomalyDetector:
         if time_ms < min_expected:
             logger.warning(
                 "Timing anomaly: %dms for difficulty %d (min expected: %dms)",
-                time_ms, difficulty, min_expected,
+                time_ms,
+                difficulty,
+                min_expected,
             )
             return True
         return False
@@ -58,7 +60,8 @@ class AnomalyDetector:
             if variance < self.score_variance_threshold:
                 logger.warning(
                     "Score manipulation suspected: variance=%.6f (threshold=%.6f)",
-                    variance, self.score_variance_threshold,
+                    variance,
+                    self.score_variance_threshold,
                 )
                 return True
         except statistics.StatisticsError:
@@ -66,9 +69,7 @@ class AnomalyDetector:
 
         return False
 
-    def check_sudden_improvement(
-        self, recent_scores: List[float], historical_avg: float
-    ) -> bool:
+    def check_sudden_improvement(self, recent_scores: List[float], historical_avg: float) -> bool:
         """
         Flag if a miner suddenly improves dramatically (potential identity swap).
 
@@ -84,7 +85,9 @@ class AnomalyDetector:
         if improvement_ratio > 2.0:
             logger.warning(
                 "Sudden improvement detected: %.2f -> %.2f (%.1fx)",
-                historical_avg, recent_avg, improvement_ratio,
+                historical_avg,
+                recent_avg,
+                improvement_ratio,
             )
             return True
 
@@ -126,7 +129,9 @@ class AnomalyDetector:
                     flagged.append((uid_a, uid_b, sim))
                     logger.warning(
                         "Collusion detected: UID %d and UID %d (similarity=%.4f)",
-                        uid_a, uid_b, sim,
+                        uid_a,
+                        uid_b,
+                        sim,
                     )
 
         return flagged
@@ -154,8 +159,10 @@ class AnomalyDetector:
             "uid": uid,
             "timing_anomaly": self.check_timing_anomaly(time_ms, difficulty),
             "score_manipulation": self.check_score_manipulation(cms_history),
-            "flags_count": sum([
-                self.check_timing_anomaly(time_ms, difficulty),
-                self.check_score_manipulation(cms_history),
-            ]),
+            "flags_count": sum(
+                [
+                    self.check_timing_anomaly(time_ms, difficulty),
+                    self.check_score_manipulation(cms_history),
+                ]
+            ),
         }

@@ -14,6 +14,7 @@ from typing import Optional
 
 try:
     import bittensor as bt
+
     HAS_BITTENSOR = True
 except ImportError:
     HAS_BITTENSOR = False
@@ -36,23 +37,18 @@ class BaseNeuron(ABC):
         if HAS_BITTENSOR:
             self.wallet = bt.Wallet(config=self.config)
             self.subtensor = bt.Subtensor(config=self.config)
-            self.metagraph = self.subtensor.metagraph(
-                netuid=self.config.netuid
-            )
+            self.metagraph = self.subtensor.metagraph(netuid=self.config.netuid)
         else:
             self.wallet = None
             self.subtensor = None
             self.metagraph = None
-            logger.warning(
-                "Bittensor not installed. Running in offline/test mode."
-            )
+            logger.warning("Bittensor not installed. Running in offline/test mode.")
 
         # 3. Check registration
         self.uid = self._get_uid()
         if self.uid is None and HAS_BITTENSOR:
             logger.error(
-                "Neuron not registered on subnet %s. "
-                "Run: btcli register --netuid %s",
+                "Neuron not registered on subnet %s. Run: btcli register --netuid %s",
                 getattr(self.config, "netuid", "?"),
                 getattr(self.config, "netuid", "?"),
             )

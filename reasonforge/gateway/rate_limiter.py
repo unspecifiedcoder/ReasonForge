@@ -16,8 +16,8 @@ class TokenBucketRateLimiter:
 
     def __init__(
         self,
-        rate: float = 10.0,      # Tokens per second
-        capacity: int = 100,     # Max burst size
+        rate: float = 10.0,  # Tokens per second
+        capacity: int = 100,  # Max burst size
     ):
         self.rate = rate
         self.capacity = capacity
@@ -68,9 +68,7 @@ class PerIPRateLimiter:
     def allow(self, ip: str) -> bool:
         now = time.time()
         # Clean old entries
-        self._requests[ip] = [
-            t for t in self._requests[ip] if now - t < 60
-        ]
+        self._requests[ip] = [t for t in self._requests[ip] if now - t < 60]
 
         if len(self._requests[ip]) >= self.rpm:
             return False

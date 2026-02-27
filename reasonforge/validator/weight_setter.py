@@ -14,12 +14,14 @@ logger = logging.getLogger("reasonforge.validator.weight_setter")
 
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
 
 try:
     import bittensor as bt  # noqa: F401
+
     HAS_BITTENSOR = True
 except ImportError:
     HAS_BITTENSOR = False
@@ -55,7 +57,9 @@ class WeightSetter:
         for uid in range(n):
             if uid in miner_states:
                 ms = miner_states[uid]
-                s_epoch = ms.get("s_epoch", 0.0) if isinstance(ms, dict) else getattr(ms, "s_epoch", 0.0)
+                s_epoch = (
+                    ms.get("s_epoch", 0.0) if isinstance(ms, dict) else getattr(ms, "s_epoch", 0.0)
+                )
                 peb = ms.get("peb", 0.0) if isinstance(ms, dict) else getattr(ms, "peb", 0.0)
 
                 if s_epoch > 0:
@@ -106,9 +110,7 @@ class WeightSetter:
                 else:
                     logger.warning("Weight setting returned False (attempt %d)", attempt + 1)
             except Exception as e:
-                logger.warning(
-                    "Weight setting attempt %d failed: %s", attempt + 1, e
-                )
+                logger.warning("Weight setting attempt %d failed: %s", attempt + 1, e)
                 time.sleep(5)
 
         logger.error("Failed to set weights after %d attempts", max_retries)

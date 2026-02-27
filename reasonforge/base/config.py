@@ -14,6 +14,7 @@ from typing import List, Optional
 
 try:
     import bittensor as bt
+
     HAS_BITTENSOR = True
 except ImportError:
     HAS_BITTENSOR = False
@@ -30,8 +31,12 @@ class MinerConfig:
     port: int = 8091
     domains: List[str] = field(
         default_factory=lambda: [
-            "mathematics", "code", "scientific",
-            "strategic", "causal", "ethical",
+            "mathematics",
+            "code",
+            "scientific",
+            "strategic",
+            "causal",
+            "ethical",
         ]
     )
 
@@ -39,7 +44,9 @@ class MinerConfig:
     def add_args(parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group("Miner")
         group.add_argument(
-            "--miner.backend", type=str, default="openai",
+            "--miner.backend",
+            type=str,
+            default="openai",
             choices=["openai", "anthropic", "local", "agent"],
             help="LLM backend to use",
         )
@@ -48,7 +55,9 @@ class MinerConfig:
         group.add_argument("--miner.max_concurrent", type=int, default=4)
         group.add_argument("--miner.port", type=int, default=8091)
         group.add_argument(
-            "--miner.domains", type=str, nargs="+",
+            "--miner.domains",
+            type=str,
+            nargs="+",
             default=["mathematics", "code", "scientific", "strategic", "causal", "ethical"],
         )
 
@@ -86,21 +95,27 @@ class ValidatorConfig:
     def add_args(parser: argparse.ArgumentParser) -> None:
         group = parser.add_argument_group("Validator")
         group.add_argument(
-            "--validator.epoch_length", type=int, default=360,
+            "--validator.epoch_length",
+            type=int,
+            default=360,
             help="Blocks per epoch (360 = ~72 min)",
         )
         group.add_argument("--validator.tasks_per_epoch", type=int, default=12)
         group.add_argument("--validator.trap_rate", type=float, default=0.15)
         group.add_argument("--validator.timeout", type=int, default=300)
         group.add_argument(
-            "--validator.sample_size", type=int, default=16,
+            "--validator.sample_size",
+            type=int,
+            default=16,
             help="Number of miners to query per task",
         )
         group.add_argument("--validator.port", type=int, default=8092)
         group.add_argument("--validator.sandbox_enabled", action="store_true")
         group.add_argument("--validator.lean4_enabled", action="store_true")
         group.add_argument(
-            "--validator.embedding_model", type=str, default="all-MiniLM-L6-v2",
+            "--validator.embedding_model",
+            type=str,
+            default="all-MiniLM-L6-v2",
         )
 
     @classmethod
@@ -127,7 +142,9 @@ def create_parser(neuron_type: str = "miner") -> argparse.ArgumentParser:
     # Common args
     parser.add_argument("--netuid", type=int, required=True, help="Subnet UID")
     parser.add_argument(
-        "--subtensor.network", type=str, default="finney",
+        "--subtensor.network",
+        type=str,
+        default="finney",
         help="Bittensor network (finney|test|local)",
     )
     parser.add_argument("--subtensor.chain_endpoint", type=str, default=None)

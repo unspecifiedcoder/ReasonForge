@@ -30,9 +30,7 @@ class ObjectiveScorer:
         self.math_checker = math_checker
         self.fact_checker = fact_checker
 
-    async def compute_objective_score(
-        self, task: Task, response_data: dict
-    ) -> float:
+    async def compute_objective_score(self, task: Task, response_data: dict) -> float:
         """
         Compute objective score using domain-specific automated checks.
         Maps to Eq. 11 in the whitepaper.
@@ -44,6 +42,7 @@ class ObjectiveScorer:
 
         # Use engine's objective score formula
         from ..engine import ScoringEngine
+
         return ScoringEngine.compute_objective_score(checks, weights)
 
     async def _run_domain_checks(
@@ -135,9 +134,13 @@ class ObjectiveScorer:
         _steps = response.get("steps", [])  # noqa: F841 — reserved for future causal DAG checks
         answer = response.get("final_answer", "").lower()
         checks = {
-            "docalculus": 0.7 if any(kw in answer for kw in ["do(", "intervention", "do-calculus"]) else 0.3,
+            "docalculus": 0.7
+            if any(kw in answer for kw in ["do(", "intervention", "do-calculus"])
+            else 0.3,
             "bootstrap": 0.5 if "confidence" in answer or "interval" in answer else 0.3,
-            "dag": 0.7 if any(kw in answer for kw in ["dag", "graph", "node", "edge", "path"]) else 0.3,
+            "dag": 0.7
+            if any(kw in answer for kw in ["dag", "graph", "node", "edge", "path"])
+            else 0.3,
         }
         return checks
 
@@ -177,14 +180,23 @@ class ObjectiveScorer:
     def _check_quantitative_content(self, steps: list) -> float:
         """Check for quantitative/numerical content in steps."""
         import re
+
         all_text = " ".join(s.get("reasoning", "") for s in steps)
         numbers = re.findall(r"\d+\.?\d*", all_text)
         return min(1.0, len(numbers) / 10.0) if numbers else 0.2
 
     def _check_statistical_content(self, steps: list) -> float:
         all_text = " ".join(s.get("reasoning", "") for s in steps).lower()
-        keywords = ["mean", "variance", "standard deviation", "p-value",
-                    "confidence interval", "regression", "correlation", "hypothesis"]
+        keywords = [
+            "mean",
+            "variance",
+            "standard deviation",
+            "p-value",
+            "confidence interval",
+            "regression",
+            "correlation",
+            "hypothesis",
+        ]
         found = sum(1 for kw in keywords if kw in all_text)
         return min(1.0, found / 3.0)
 
@@ -196,8 +208,16 @@ class ObjectiveScorer:
 
     def _check_formal_solution(self, steps: list) -> float:
         all_text = " ".join(s.get("reasoning", "") for s in steps).lower()
-        keywords = ["optimal", "maximize", "minimize", "equilibrium", "solution",
-                    "payoff", "strategy", "constraint"]
+        keywords = [
+            "optimal",
+            "maximize",
+            "minimize",
+            "equilibrium",
+            "solution",
+            "payoff",
+            "strategy",
+            "constraint",
+        ]
         found = sum(1 for kw in keywords if kw in all_text)
         return min(1.0, found / 3.0)
 
@@ -218,7 +238,15 @@ class ObjectiveScorer:
         if not steps:
             return 0.0
         all_text = " ".join(s.get("reasoning", "") for s in steps).lower()
-        connectors = ["therefore", "because", "however", "moreover", "furthermore",
-                      "on the other hand", "in contrast", "consequently"]
+        connectors = [
+            "therefore",
+            "because",
+            "however",
+            "moreover",
+            "furthermore",
+            "on the other hand",
+            "in contrast",
+            "consequently",
+        ]
         found = sum(1 for c in connectors if c in all_text)
         return min(1.0, 0.3 + found * 0.15)

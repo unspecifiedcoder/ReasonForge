@@ -17,6 +17,7 @@ logger = logging.getLogger("reasonforge.monitoring.health")
 @dataclass
 class HealthStatus:
     """Health status of a neuron or service."""
+
     healthy: bool = True
     version: str = "0.1.0"
     uptime_seconds: float = 0.0

@@ -148,7 +148,16 @@ class StateDatabase:
             """INSERT INTO task_results
                (task_id, epoch_id, domain, difficulty, is_trap, avg_cms, best_miner_uid, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (task_id, epoch_id, domain, difficulty, int(is_trap), avg_cms, best_miner_uid, time.time()),
+            (
+                task_id,
+                epoch_id,
+                domain,
+                difficulty,
+                int(is_trap),
+                avg_cms,
+                best_miner_uid,
+                time.time(),
+            ),
         )
         self.conn.commit()
 
@@ -172,8 +181,18 @@ class StateDatabase:
                (submission_id, task_id, miner_uid, cms, quality, accuracy, novelty, efficiency,
                 submission_hash, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (submission_id, task_id, miner_uid, cms, quality, accuracy, novelty, efficiency,
-             submission_hash, time.time()),
+            (
+                submission_id,
+                task_id,
+                miner_uid,
+                cms,
+                quality,
+                accuracy,
+                novelty,
+                efficiency,
+                submission_hash,
+                time.time(),
+            ),
         )
         self.conn.commit()
 
@@ -227,9 +246,7 @@ class StateDatabase:
 
     def get_api_key(self, api_key: str) -> Optional[Dict[str, Any]]:
         """Look up an API key."""
-        row = self.conn.execute(
-            "SELECT * FROM api_keys WHERE api_key = ?", (api_key,)
-        ).fetchone()
+        row = self.conn.execute("SELECT * FROM api_keys WHERE api_key = ?", (api_key,)).fetchone()
         if row is None:
             return None
         return dict(row)

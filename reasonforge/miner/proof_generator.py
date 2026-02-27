@@ -18,6 +18,7 @@ logger = logging.getLogger("reasonforge.miner.proof")
 @dataclass
 class ProofResult:
     """Result of a proof generation attempt."""
+
     status: str = "NONE"  # "VERIFIED" | "FAILED" | "NONE"
     artifact: Optional[str] = None  # Base64-encoded proof file
     fragments: Optional[list[str]] = None  # Per-step proof fragments
@@ -75,6 +76,7 @@ class ProofGenerator:
         artifact = None
         if all_fragments:
             import base64
+
             combined = "\n\n".join(all_fragments)
             artifact = base64.b64encode(combined.encode()).decode()
 

@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 class TaskSubmissionRequest(BaseModel):
     """Request to submit a reasoning task to the network."""
+
     problem: str = Field(..., min_length=10, max_length=10000)
     domain: Optional[str] = None
     difficulty: Optional[int] = Field(None, ge=1, le=10)
@@ -22,6 +23,7 @@ class TaskSubmissionRequest(BaseModel):
 
 class TaskResultResponse(BaseModel):
     """Response for task result queries."""
+
     task_id: str
     status: str  # "queued" | "processing" | "completed" | "failed"
     result: Optional[Dict] = None
@@ -33,6 +35,7 @@ class TaskResultResponse(BaseModel):
 
 class LeaderboardEntry(BaseModel):
     """Single entry in the miner leaderboard."""
+
     uid: int
     s_epoch: float
     peb: float
@@ -43,6 +46,7 @@ class LeaderboardEntry(BaseModel):
 
 class LeaderboardResponse(BaseModel):
     """Miner leaderboard response."""
+
     epoch_id: int
     entries: List[LeaderboardEntry]
     total_miners: int
@@ -50,6 +54,7 @@ class LeaderboardResponse(BaseModel):
 
 class NetworkStatsResponse(BaseModel):
     """Network statistics response."""
+
     current_epoch: int
     total_tasks_processed: int
     active_miners: int
@@ -61,6 +66,7 @@ class NetworkStatsResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str
     version: str
     uptime_seconds: float
@@ -70,6 +76,7 @@ class HealthResponse(BaseModel):
 
 class APIKeyInfo(BaseModel):
     """API key information."""
+
     key_id: str
     owner: str
     tier: str

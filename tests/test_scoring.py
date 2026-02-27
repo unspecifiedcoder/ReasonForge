@@ -161,7 +161,7 @@ class TestWeightSetter:
         assert len(uids) == 3
         assert len(weights) == 3
         # Weights should be normalized
-        total = sum(weights) if not hasattr(weights, 'sum') else float(weights.sum())
+        total = sum(weights) if not hasattr(weights, "sum") else float(weights.sum())
         assert abs(total - 1.0) < 1e-6
 
     def test_compute_weights_empty(self):
@@ -185,7 +185,7 @@ class TestWeightSetter:
             1: {"s_epoch": 0.3, "peb": 0.0},
         }
         uids, weights = ws.compute_weights(states, n=10)
-        weights_list = list(weights) if not hasattr(weights, 'tolist') else weights.tolist()
+        weights_list = list(weights) if not hasattr(weights, "tolist") else weights.tolist()
         assert weights_list[0] > weights_list[1]
 
 

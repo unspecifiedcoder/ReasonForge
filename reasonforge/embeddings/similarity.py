@@ -32,6 +32,7 @@ class SimilarityDetector:
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer
+
                 self._model = SentenceTransformer(self.model_name)
                 logger.info("Loaded embedding model: %s", self.model_name)
             except ImportError:
@@ -51,8 +52,7 @@ class SimilarityDetector:
         steps = getattr(response, "reasoning_steps", None) or []
         if isinstance(steps, list):
             steps_text = " ".join(
-                s.get("reasoning", "") if isinstance(s, dict) else str(s)
-                for s in steps
+                s.get("reasoning", "") if isinstance(s, dict) else str(s) for s in steps
             )
         else:
             steps_text = str(steps)
@@ -70,9 +70,7 @@ class SimilarityDetector:
         # Vectors are already normalized, so dot product = cosine similarity
         return float(np.dot(a, b))
 
-    def check_against_batch(
-        self, response, other_responses: list
-    ) -> float:
+    def check_against_batch(self, response, other_responses: list) -> float:
         """
         Return max cosine similarity against other responses in this batch.
 
@@ -104,7 +102,7 @@ class SimilarityDetector:
 
         try:
             target_emb = self.embed_submission(response)
-            history_matrix = np.array(self.history_embeddings[-self.max_history:])
+            history_matrix = np.array(self.history_embeddings[-self.max_history :])
             similarities = history_matrix @ target_emb
             return float(np.max(similarities))
         except Exception as e:
@@ -117,7 +115,7 @@ class SimilarityDetector:
             emb = self.embed_submission(response)
             self.history_embeddings.append(emb)
             if len(self.history_embeddings) > self.max_history:
-                self.history_embeddings = self.history_embeddings[-self.max_history:]
+                self.history_embeddings = self.history_embeddings[-self.max_history :]
         except Exception as e:
             logger.debug("Failed to add to history: %s", e)
 

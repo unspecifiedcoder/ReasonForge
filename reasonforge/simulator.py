@@ -36,10 +36,10 @@ from .types import (
 # ──────────────────────────────────────────────
 
 MINER_TIERS = {
-    "elite":       {"q": 0.88, "a": 0.90, "n": 0.80, "e": 0.85, "var": 0.06},
-    "strong":      {"q": 0.78, "a": 0.80, "n": 0.70, "e": 0.75, "var": 0.08},
-    "mid":         {"q": 0.65, "a": 0.68, "n": 0.55, "e": 0.65, "var": 0.10},
-    "weak":        {"q": 0.45, "a": 0.50, "n": 0.40, "e": 0.55, "var": 0.12},
+    "elite": {"q": 0.88, "a": 0.90, "n": 0.80, "e": 0.85, "var": 0.06},
+    "strong": {"q": 0.78, "a": 0.80, "n": 0.70, "e": 0.75, "var": 0.08},
+    "mid": {"q": 0.65, "a": 0.68, "n": 0.55, "e": 0.65, "var": 0.10},
+    "weak": {"q": 0.45, "a": 0.50, "n": 0.40, "e": 0.55, "var": 0.12},
     "adversarial": {"q": 0.20, "a": 0.15, "n": 0.10, "e": 0.30, "var": 0.15},
 }
 
@@ -77,10 +77,18 @@ class MinerProfile:
         domain_bonus = self.domain_bonuses.get(task.domain, 0.0)
         diff_penalty = (task.difficulty - 5) * 0.015
 
-        q = self._clamp(self.base_quality + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance))
-        a = self._clamp(self.base_accuracy + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance))
-        n = self._clamp(self.base_novelty + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance))
-        e = self._clamp(self.base_efficiency + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance))
+        q = self._clamp(
+            self.base_quality + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance)
+        )
+        a = self._clamp(
+            self.base_accuracy + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance)
+        )
+        n = self._clamp(
+            self.base_novelty + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance)
+        )
+        e = self._clamp(
+            self.base_efficiency + domain_bonus - diff_penalty + self.rng.gauss(0, self.variance)
+        )
 
         scores = DimensionScores(quality=q, accuracy=a, novelty=n, efficiency=e)
 
@@ -88,12 +96,14 @@ class MinerProfile:
         num_steps = self.rng.randint(2, 5)
         steps = []
         for i in range(num_steps):
-            steps.append(ReasoningStep(
-                step_id=i + 1,
-                reasoning=f"Step {i+1}: {self.name} applies reasoning for {task.domain.value} task",
-                evidence=f"Evidence from analysis of {task.problem[:50]}...",
-                confidence=self._clamp(scores.cms + self.rng.gauss(0, 0.05)),
-            ))
+            steps.append(
+                ReasoningStep(
+                    step_id=i + 1,
+                    reasoning=f"Step {i + 1}: {self.name} applies reasoning for {task.domain.value} task",
+                    evidence=f"Evidence from analysis of {task.problem[:50]}...",
+                    confidence=self._clamp(scores.cms + self.rng.gauss(0, 0.05)),
+                )
+            )
 
         submission = MinerSubmission(
             task_id=task.task_id,
@@ -112,9 +122,9 @@ class MinerProfile:
 # ──────────────────────────────────────────────
 
 VALIDATOR_PROFILES = {
-    "honest":    {"noise": 0.03, "bias": 0.0},
-    "good":      {"noise": 0.06, "bias": 0.0},
-    "lazy":      {"noise": 0.15, "bias": -0.10},
+    "honest": {"noise": 0.03, "bias": 0.0},
+    "good": {"noise": 0.06, "bias": 0.0},
+    "lazy": {"noise": 0.15, "bias": -0.10},
     "malicious": {"noise": 0.25, "bias": +0.20},
 }
 
@@ -122,7 +132,9 @@ VALIDATOR_PROFILES = {
 class ValidatorProfile:
     """Simulated validator with accuracy profile."""
 
-    def __init__(self, validator_id: str, name: str, stake: float, accuracy: str, seed: Optional[int] = None):
+    def __init__(
+        self, validator_id: str, name: str, stake: float, accuracy: str, seed: Optional[int] = None
+    ):
         self.validator_id = validator_id
         self.name = name
         self.stake = stake
@@ -168,7 +180,9 @@ DEFAULT_VALIDATORS = [
 ]
 
 
-def create_default_miners(seed: Optional[int] = None) -> Tuple[List[MinerProfile], List[MinerState]]:
+def create_default_miners(
+    seed: Optional[int] = None,
+) -> Tuple[List[MinerProfile], List[MinerState]]:
     """Create the default roster of 12 miners."""
     profiles = []
     states = []
@@ -179,7 +193,9 @@ def create_default_miners(seed: Optional[int] = None) -> Tuple[List[MinerProfile
     return profiles, states
 
 
-def create_default_validators(seed: Optional[int] = None) -> Tuple[List[ValidatorProfile], List[ValidatorState]]:
+def create_default_validators(
+    seed: Optional[int] = None,
+) -> Tuple[List[ValidatorProfile], List[ValidatorState]]:
     """Create the default roster of 6 validators."""
     profiles = []
     states = []
@@ -193,6 +209,7 @@ def create_default_validators(seed: Optional[int] = None) -> Tuple[List[Validato
 # ──────────────────────────────────────────────
 # Epoch Simulator
 # ──────────────────────────────────────────────
+
 
 class EpochSimulator:
     """
@@ -248,12 +265,8 @@ class EpochSimulator:
             vs.slashed_amount = 0.0
 
         # Track validator deviations for VAS computation
-        validator_scores_given: Dict[str, List[float]] = {
-            vid: [] for vid in self.validator_states
-        }
-        validator_consensus_ref: Dict[str, List[float]] = {
-            vid: [] for vid in self.validator_states
-        }
+        validator_scores_given: Dict[str, List[float]] = {vid: [] for vid in self.validator_states}
+        validator_consensus_ref: Dict[str, List[float]] = {vid: [] for vid in self.validator_states}
 
         all_cms_values: List[float] = []
         total_breakthroughs = 0
@@ -279,14 +292,21 @@ class EpochSimulator:
                 domain_weights = DOMAIN_CHECK_WEIGHTS.get(task.domain, {"logic": 1.0})
                 # Simulate check results from dimension scores
                 checks = {}
-                dim_values = [dim_scores.quality, dim_scores.accuracy, dim_scores.novelty, dim_scores.efficiency]
+                dim_values = [
+                    dim_scores.quality,
+                    dim_scores.accuracy,
+                    dim_scores.novelty,
+                    dim_scores.efficiency,
+                ]
                 for i, key in enumerate(domain_weights.keys()):
                     checks[key] = dim_values[i % len(dim_values)]
                 o_score = ScoringEngine.compute_objective_score(checks, domain_weights)
 
                 # 3c-d. Assign validators and evaluate
                 validator_ids = list(self.validator_states.keys())
-                assigned = self.rng.sample(validator_ids, min(VALIDATORS_PER_TASK, len(validator_ids)))
+                assigned = self.rng.sample(
+                    validator_ids, min(VALIDATORS_PER_TASK, len(validator_ids))
+                )
 
                 val_scores_stakes: List[Tuple[float, float]] = []
                 for vid in assigned:
@@ -357,9 +377,7 @@ class EpochSimulator:
                 ms.s_epoch = 0.0
 
         # 5. Rank miners by S_epoch descending
-        sorted_miners = sorted(
-            self.miner_states.values(), key=lambda m: m.s_epoch, reverse=True
-        )
+        sorted_miners = sorted(self.miner_states.values(), key=lambda m: m.s_epoch, reverse=True)
         for rank, ms in enumerate(sorted_miners, 1):
             ms.rank = rank
             # Update streak: increment if in top-K, else reset
@@ -410,31 +428,35 @@ class EpochSimulator:
         # 12. Build and return EpochResult
         miner_results = []
         for ms in sorted_miners:
-            miner_results.append({
-                "rank": ms.rank,
-                "miner_id": ms.miner_id,
-                "name": ms.name,
-                "s_epoch": round(ms.s_epoch, 6),
-                "peb": round(ms.peb, 6),
-                "streak": ms.streak,
-                "epoch_tao": ms.epoch_tao,
-                "total_tao": round(ms.total_tao_earned, 6),
-                "trap_penalty": round(ms.trap_penalty, 6),
-                "breakthroughs": ms.breakthroughs,
-            })
+            miner_results.append(
+                {
+                    "rank": ms.rank,
+                    "miner_id": ms.miner_id,
+                    "name": ms.name,
+                    "s_epoch": round(ms.s_epoch, 6),
+                    "peb": round(ms.peb, 6),
+                    "streak": ms.streak,
+                    "epoch_tao": ms.epoch_tao,
+                    "total_tao": round(ms.total_tao_earned, 6),
+                    "trap_penalty": round(ms.trap_penalty, 6),
+                    "breakthroughs": ms.breakthroughs,
+                }
+            )
 
         validator_results = []
         for vs in val_list:
-            validator_results.append({
-                "validator_id": vs.validator_id,
-                "name": vs.name,
-                "stake": vs.stake,
-                "vas": round(vs.current_vas, 6),
-                "reputation": round(vs.reputation_multiplier, 6),
-                "epoch_tao": vs.epoch_tao,
-                "total_tao": round(vs.total_tao_earned, 6),
-                "slashed": round(vs.slashed_amount, 6),
-            })
+            validator_results.append(
+                {
+                    "validator_id": vs.validator_id,
+                    "name": vs.name,
+                    "stake": vs.stake,
+                    "vas": round(vs.current_vas, 6),
+                    "reputation": round(vs.reputation_multiplier, 6),
+                    "epoch_tao": vs.epoch_tao,
+                    "total_tao": round(vs.total_tao_earned, 6),
+                    "slashed": round(vs.slashed_amount, 6),
+                }
+            )
 
         avg_cms = sum(all_cms_values) / len(all_cms_values) if all_cms_values else 0.0
 

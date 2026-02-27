@@ -22,6 +22,7 @@ logger = logging.getLogger("reasonforge.miner.reasoning")
 @dataclass
 class ReasoningStep:
     """A single step in the reasoning chain."""
+
     step_id: int = 0
     reasoning: str = ""
     evidence: str = ""
@@ -32,6 +33,7 @@ class ReasoningStep:
 @dataclass
 class ReasoningResult:
     """Complete result of a reasoning task."""
+
     steps: List[ReasoningStep] = field(default_factory=list)
     final_answer: str = ""
     proof_status: Optional[str] = None
@@ -61,20 +63,25 @@ class ReasoningEngine:
         self.proof_generator = ProofGenerator()
         self.backend = self._create_backend(backend, model, api_key)
 
-    def _create_backend(self, backend_type: str, model: str,
-                        api_key: str | None = None) -> LLMBackend:
+    def _create_backend(
+        self, backend_type: str, model: str, api_key: str | None = None
+    ) -> LLMBackend:
         """Create the appropriate LLM backend."""
         if backend_type == "openai":
             from .backends.openai_backend import OpenAIBackend
+
             return OpenAIBackend(model=model, api_key=api_key)
         elif backend_type == "anthropic":
             from .backends.anthropic_backend import AnthropicBackend
+
             return AnthropicBackend(model=model, api_key=api_key)
         elif backend_type == "local":
             from .backends.local_backend import LocalBackend
+
             return LocalBackend(model=model)
         elif backend_type == "agent":
             from .backends.agent_backend import AgentBackend
+
             return AgentBackend(model=model, api_key=api_key)
         else:
             raise ValueError(f"Unknown backend type: {backend_type}")
@@ -113,13 +120,15 @@ class ReasoningEngine:
 
         if parsed and "steps" in parsed:
             for i, step_data in enumerate(parsed["steps"]):
-                steps.append(ReasoningStep(
-                    step_id=step_data.get("step_id", i),
-                    reasoning=step_data.get("reasoning", ""),
-                    evidence=step_data.get("evidence", ""),
-                    confidence=float(step_data.get("confidence", 0.5)),
-                    formal_proof_fragment=step_data.get("formal_proof_fragment"),
-                ))
+                steps.append(
+                    ReasoningStep(
+                        step_id=step_data.get("step_id", i),
+                        reasoning=step_data.get("reasoning", ""),
+                        evidence=step_data.get("evidence", ""),
+                        confidence=float(step_data.get("confidence", 0.5)),
+                        formal_proof_fragment=step_data.get("formal_proof_fragment"),
+                    )
+                )
             final_answer = parsed.get("final_answer", "")
         else:
             # Fallback: generate free-form and parse
@@ -175,14 +184,17 @@ class ReasoningEngine:
         for line in lines:
             # Detect step boundaries (numbered lines, "Step X:", etc.)
             stripped = line.strip()
-            if (stripped and stripped[0].isdigit() and "." in stripped[:4]) or \
-               stripped.lower().startswith("step "):
+            if (
+                stripped and stripped[0].isdigit() and "." in stripped[:4]
+            ) or stripped.lower().startswith("step "):
                 if current_step:
-                    steps.append(ReasoningStep(
-                        step_id=step_id,
-                        reasoning="\n".join(current_step),
-                        confidence=0.5,
-                    ))
+                    steps.append(
+                        ReasoningStep(
+                            step_id=step_id,
+                            reasoning="\n".join(current_step),
+                            confidence=0.5,
+                        )
+                    )
                     step_id += 1
                     current_step = []
             current_step.append(line)
@@ -190,28 +202,34 @@ class ReasoningEngine:
         # Last step becomes final answer if no explicit answer section
         if current_step:
             text_block = "\n".join(current_step)
-            if any(marker in text_block.lower() for marker in
-                   ["final answer", "therefore", "conclusion", "answer:"]):
+            if any(
+                marker in text_block.lower()
+                for marker in ["final answer", "therefore", "conclusion", "answer:"]
+            ):
                 final_answer = text_block
                 if not steps:
-                    steps.append(ReasoningStep(
-                        step_id=0,
+                    steps.append(
+                        ReasoningStep(
+                            step_id=0,
+                            reasoning=text_block,
+                            confidence=0.5,
+                        )
+                    )
+            else:
+                steps.append(
+                    ReasoningStep(
+                        step_id=step_id,
                         reasoning=text_block,
                         confidence=0.5,
-                    ))
-            else:
-                steps.append(ReasoningStep(
-                    step_id=step_id,
-                    reasoning=text_block,
-                    confidence=0.5,
-                ))
+                    )
+                )
                 final_answer = text_block
 
         if not steps:
             steps = [ReasoningStep(step_id=0, reasoning=text, confidence=0.3)]
             final_answer = text
 
-        return steps, final_answer if 'final_answer' in dir() else steps[-1].reasoning
+        return steps, final_answer if "final_answer" in dir() else steps[-1].reasoning
 
     def _extract_code_artifact(self, texts: list[str]) -> str | None:
         """Extract code blocks from reasoning text."""
@@ -220,8 +238,7 @@ class ReasoningEngine:
 
         for text in texts:
             code_blocks = re.findall(
-                r"```(?:python|javascript|java|cpp|c\+\+|rust|go)?\n(.*?)```",
-                text, re.DOTALL
+                r"```(?:python|javascript|java|cpp|c\+\+|rust|go)?\n(.*?)```", text, re.DOTALL
             )
             if code_blocks:
                 # Return the longest code block as the artifact

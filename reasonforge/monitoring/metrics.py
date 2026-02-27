@@ -13,6 +13,7 @@ logger = logging.getLogger("reasonforge.monitoring.metrics")
 
 try:
     from prometheus_client import Counter, Gauge, Histogram, start_http_server
+
     HAS_PROMETHEUS = True
 except ImportError:
     HAS_PROMETHEUS = False
@@ -112,8 +113,9 @@ class MetricsCollector:
         self.tasks_processed.labels(domain=domain, difficulty=str(difficulty)).inc()
         self.task_latency.labels(domain=domain).observe(latency_s)
 
-    def record_epoch(self, epoch_id: int, n_miners: int, avg_score: float,
-                     top_score: float) -> None:
+    def record_epoch(
+        self, epoch_id: int, n_miners: int, avg_score: float, top_score: float
+    ) -> None:
         if not self._initialized:
             return
         self.epochs_completed.inc()

@@ -4,7 +4,6 @@ ReasonForge - Protocol Tests
 Tests for Synapse serialization, deserialization, and hash verification.
 """
 
-
 from reasonforge.protocol import (
     HealthCheck,
     ReasoningTask,
@@ -73,10 +72,12 @@ class TestReasoningTaskSynapse:
 
     def test_submission_hash_changes_with_content(self):
         task1 = ReasoningTask(
-            task_id="t001", final_answer="answer1",
+            task_id="t001",
+            final_answer="answer1",
         )
         task2 = ReasoningTask(
-            task_id="t001", final_answer="answer2",
+            task_id="t001",
+            final_answer="answer2",
         )
         assert task1.compute_submission_hash() != task2.compute_submission_hash()
 

@@ -4,7 +4,6 @@ ReasonForge - State Persistence Tests
 Tests for SQLite database, checkpoints, and migrations.
 """
 
-
 import pytest
 
 from reasonforge.state.checkpoint import CheckpointManager
@@ -29,8 +28,13 @@ class TestStateDatabase:
 
     def test_save_and_load_miner_epoch(self, db):
         db.save_miner_epoch(
-            epoch_id=1, miner_uid=42, s_epoch=0.85,
-            peb=0.12, rank=3, streak=5, tao_earned=1.5,
+            epoch_id=1,
+            miner_uid=42,
+            s_epoch=0.85,
+            peb=0.12,
+            rank=3,
+            streak=5,
+            tao_earned=1.5,
         )
         history = db.get_miner_history(42)
         assert len(history) == 1
@@ -40,9 +44,12 @@ class TestStateDatabase:
     def test_multiple_epochs(self, db):
         for i in range(5):
             db.save_miner_epoch(
-                epoch_id=i, miner_uid=1,
-                s_epoch=0.5 + i * 0.1, peb=0.0,
-                rank=1, streak=i,
+                epoch_id=i,
+                miner_uid=1,
+                s_epoch=0.5 + i * 0.1,
+                peb=0.0,
+                rank=1,
+                streak=i,
             )
         history = db.get_miner_history(1)
         assert len(history) == 5
@@ -86,17 +93,28 @@ class TestStateDatabase:
 
     def test_save_task_result(self, db):
         db.save_task_result(
-            task_id="t001", epoch_id=1, domain="mathematics",
-            difficulty=5, is_trap=False, avg_cms=0.75, best_miner_uid=1,
+            task_id="t001",
+            epoch_id=1,
+            domain="mathematics",
+            difficulty=5,
+            is_trap=False,
+            avg_cms=0.75,
+            best_miner_uid=1,
         )
         stats = db.get_stats()
         assert stats["task_results"] == 1
 
     def test_save_submission(self, db):
         db.save_submission(
-            submission_id="s001", task_id="t001", miner_uid=1,
-            cms=0.8, quality=0.9, accuracy=0.7, novelty=0.6,
-            efficiency=0.8, submission_hash="abc123",
+            submission_id="s001",
+            task_id="t001",
+            miner_uid=1,
+            cms=0.8,
+            quality=0.9,
+            accuracy=0.7,
+            novelty=0.6,
+            efficiency=0.8,
+            submission_hash="abc123",
         )
         stats = db.get_stats()
         assert stats["submissions"] == 1
@@ -142,6 +160,7 @@ class TestMigrations:
     @pytest.fixture
     def db_conn(self, temp_db_path):
         import sqlite3
+
         conn = sqlite3.connect(temp_db_path)
         yield conn
         conn.close()

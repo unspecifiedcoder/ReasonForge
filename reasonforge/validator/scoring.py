@@ -38,6 +38,7 @@ class ValidatorScorer:
         if lean4_enabled:
             try:
                 from ..verification.lean4_checker import Lean4Checker
+
                 lean4_checker = Lean4Checker()
             except ImportError:
                 logger.warning("Lean4 checker not available")
@@ -45,18 +46,21 @@ class ValidatorScorer:
         if sandbox_enabled:
             try:
                 from ..verification.code_sandbox import CodeSandbox
+
                 code_sandbox = CodeSandbox()
             except ImportError:
                 logger.warning("Code sandbox not available")
 
         try:
             from ..verification.math_checker import MathChecker
+
             math_checker = MathChecker()
         except ImportError:
             logger.debug("Math checker not available")
 
         try:
             from ..verification.fact_checker import FactChecker
+
             fact_checker = FactChecker()
         except ImportError:
             logger.debug("Fact checker not available")
@@ -68,9 +72,7 @@ class ValidatorScorer:
             fact_checker=fact_checker,
         )
 
-    async def compute_dimensions(
-        self, task: Task, response: dict
-    ) -> DimensionScores:
+    async def compute_dimensions(self, task: Task, response: dict) -> DimensionScores:
         """
         Compute all 4 dimension scores for a miner's response.
         Maps to Quality, Accuracy, Novelty, Efficiency in the whitepaper.
@@ -112,11 +114,13 @@ class ValidatorScorer:
         # Proof fragment bonus
         proof_bonus = 0.1 if any(s.get("formal_proof_fragment") for s in steps) else 0.0
 
-        return min(1.0,
-                   (0.3 * step_ratio)
-                   + (0.3 * avg_confidence)
-                   + (0.2 * evidence_ratio)
-                   + (0.2 + proof_bonus))
+        return min(
+            1.0,
+            (0.3 * step_ratio)
+            + (0.3 * avg_confidence)
+            + (0.2 * evidence_ratio)
+            + (0.2 + proof_bonus),
+        )
 
     async def _score_accuracy(self, task: Task, response: dict) -> float:
         """
@@ -140,15 +144,11 @@ class ValidatorScorer:
             return 0.0
 
         # Step text length as proxy for reasoning depth
-        avg_step_length = sum(
-            len(s.get("reasoning", "")) for s in steps
-        ) / len(steps)
+        avg_step_length = sum(len(s.get("reasoning", "")) for s in steps) / len(steps)
         length_score = min(1.0, avg_step_length / 500)
 
         # Vocabulary diversity
-        all_words = " ".join(
-            s.get("reasoning", "") for s in steps
-        ).lower().split()
+        all_words = " ".join(s.get("reasoning", "") for s in steps).lower().split()
         if all_words:
             diversity = len(set(all_words)) / len(all_words)
         else:

@@ -51,7 +51,11 @@ class PlagiarismDetector:
             return 0.0
         return intersection / union
 
-    def check(self, submission: MinerSubmission, current_submissions: Optional[List[MinerSubmission]] = None) -> float:
+    def check(
+        self,
+        submission: MinerSubmission,
+        current_submissions: Optional[List[MinerSubmission]] = None,
+    ) -> float:
         """
         Check a submission for plagiarism against history and current epoch.
 

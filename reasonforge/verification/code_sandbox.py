@@ -39,11 +39,11 @@ class CodeSandbox:
         if self._client is None:
             try:
                 import docker
+
                 self._client = docker.from_env()
             except ImportError:
                 raise ImportError(
-                    "docker package not installed. "
-                    "Install with: pip install docker>=7.0.0"
+                    "docker package not installed. Install with: pip install docker>=7.0.0"
                 )
             except Exception as e:
                 logger.error("Docker not available: %s", e)
@@ -116,9 +116,7 @@ class CodeSandbox:
                     return self._parse_test_results(logs)
                 return 0.0
             finally:
-                await loop.run_in_executor(
-                    None, lambda: container.remove(force=True)
-                )
+                await loop.run_in_executor(None, lambda: container.remove(force=True))
 
         except Exception as e:
             logger.error("Sandbox execution failed: %s", e)

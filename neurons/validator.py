@@ -17,12 +17,14 @@ from typing import Dict, List, Tuple
 
 try:
     import torch
+
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
 
 try:
     import bittensor as bt
+
     HAS_BITTENSOR = True
 except ImportError:
     HAS_BITTENSOR = False
@@ -50,6 +52,7 @@ logger = logging.getLogger("reasonforge.validator")
 @dataclass
 class TaskProcessingResult:
     """Result of processing a single task across all miners."""
+
     task: Task
     scored_results: List[Tuple[int, DimensionScores]] = field(default_factory=list)
 
@@ -107,6 +110,7 @@ class ReasonForgeValidator(BaseNeuron):
         if self.similarity_detector is None:
             try:
                 from reasonforge.embeddings.similarity import SimilarityDetector
+
                 self.similarity_detector = SimilarityDetector(
                     model_name=self.val_config.embedding_model
                 )
@@ -135,6 +139,7 @@ class ReasonForgeValidator(BaseNeuron):
         # Sample if too many
         if len(miner_uids) > self.val_config.sample_size:
             import random
+
             miner_uids = random.sample(miner_uids, self.val_config.sample_size)
 
         return miner_uids
@@ -194,15 +199,12 @@ class ReasonForgeValidator(BaseNeuron):
             count=self.val_config.tasks_per_epoch,
             trap_rate=self.val_config.trap_rate,
         )
-        logger.info("Generated %d tasks (%d traps)",
-                     len(tasks), sum(1 for t in tasks if t.is_trap))
+        logger.info("Generated %d tasks (%d traps)", len(tasks), sum(1 for t in tasks if t.is_trap))
 
         # Phase B: Process each task
         all_task_results = []
         for task in tasks:
-            result = asyncio.get_event_loop().run_until_complete(
-                self._process_task(task)
-            )
+            result = asyncio.get_event_loop().run_until_complete(self._process_task(task))
             all_task_results.append(result)
 
         # Phase C: Compute epoch scores
@@ -227,6 +229,7 @@ class ReasonForgeValidator(BaseNeuron):
 
         # Build synapse
         from reasonforge.protocol import create_reasoning_task
+
         synapse = create_reasoning_task(
             task_id=task.task_id,
             problem=task.problem,
@@ -318,16 +321,15 @@ class ReasonForgeValidator(BaseNeuron):
 
             trap_penalty = self.trap_manager.get_trap_penalty(uid)
 
-            ms.s_epoch = ScoringEngine.compute_s_epoch(
-                cms_list, diff_mults, trap_penalty
-            )
+            ms.s_epoch = ScoringEngine.compute_s_epoch(cms_list, diff_mults, trap_penalty)
             ms.epoch_scores.append(ms.s_epoch)
             ms.task_count += len(cms_list)
 
         # Rank miners
         ranked = sorted(
             [(uid, ms) for uid, ms in self.miner_states.items() if ms.s_epoch > 0],
-            key=lambda x: x[1].s_epoch, reverse=True,
+            key=lambda x: x[1].s_epoch,
+            reverse=True,
         )
 
         for i, (uid, ms) in enumerate(ranked):
@@ -358,8 +360,10 @@ class ReasonForgeValidator(BaseNeuron):
             else:
                 logger.error("Failed to set weights for epoch %d", self.epoch_id)
         else:
-            logger.info("Weights computed (offline mode): %d non-zero entries",
-                        len(uids) if hasattr(uids, '__len__') else 0)
+            logger.info(
+                "Weights computed (offline mode): %d non-zero entries",
+                len(uids) if hasattr(uids, "__len__") else 0,
+            )
 
     def _log_epoch_results(self) -> None:
         """Log epoch results summary."""
@@ -373,7 +377,11 @@ class ReasonForgeValidator(BaseNeuron):
         for uid, ms in active[:10]:
             logger.info(
                 "  UID %d: S_epoch=%.4f, PEB=%.4f, Rank=%d, Streak=%d",
-                uid, ms.s_epoch, ms.peb, ms.rank, ms.streak,
+                uid,
+                ms.s_epoch,
+                ms.peb,
+                ms.rank,
+                ms.streak,
             )
 
     def get_state_dict(self) -> dict:

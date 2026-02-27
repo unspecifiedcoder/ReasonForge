@@ -28,7 +28,6 @@ Structure your response as a series of numbered reasoning steps, each with:
 - formal_proof_fragment: Optional Lean 4 proof fragment
 
 Conclude with a clear final answer.""",
-
     Domain.CODE: """You are a code reasoning engine. For each step:
 1. Analyze the requirements and constraints
 2. Design the solution approach with complexity analysis
@@ -42,7 +41,6 @@ Structure your response as reasoning steps covering:
 - Test cases and verification
 
 Your code_artifact should contain the complete, runnable solution.""",
-
     Domain.SCIENTIFIC: """You are a scientific reasoning engine. For each step:
 1. Formulate hypotheses based on known principles
 2. Design the analytical approach or simulation
@@ -54,7 +52,6 @@ Structure your response with steps covering:
 - Methodology and approach
 - Calculations and results
 - Validation and uncertainty analysis""",
-
     Domain.STRATEGIC: """You are a strategic reasoning engine specializing in game theory and optimization. For each step:
 1. Model the problem formally (players, strategies, payoffs)
 2. Identify equilibrium concepts or optimization framework
@@ -66,7 +63,6 @@ Structure your response with steps covering:
 - Solution methodology
 - Detailed computation
 - Solution verification and interpretation""",
-
     Domain.CAUSAL: """You are a causal reasoning engine. For each step:
 1. Construct or analyze the causal DAG
 2. Identify confounders, mediators, and instruments
@@ -78,7 +74,6 @@ Structure your response with steps covering:
 - Identification strategy (backdoor, frontdoor, IV)
 - Formal derivation
 - Interpretation and assumptions""",
-
     Domain.ETHICAL: """You are an ethical reasoning engine. For each step:
 1. Identify the key moral dimensions and stakeholders
 2. Apply multiple ethical frameworks (utilitarian, deontological, virtue ethics, etc.)
@@ -134,8 +129,14 @@ class DomainRouter:
         # Default fallback
         return DOMAIN_PROMPTS[Domain.MATHEMATICS]
 
-    def build_prompt(self, problem: str, domain: str, difficulty: int,
-                     context: str | None = None, constraints: str | None = None) -> str:
+    def build_prompt(
+        self,
+        problem: str,
+        domain: str,
+        difficulty: int,
+        context: str | None = None,
+        constraints: str | None = None,
+    ) -> str:
         """Build the full user prompt for a task."""
         parts = [f"**Problem (Difficulty {difficulty}/10):**\n{problem}"]
         if context:
@@ -155,8 +156,5 @@ class DomainRouter:
     def supports_domain(self, domain: str) -> bool:
         """Check if this router supports a given domain."""
         domain_val = domain.value if hasattr(domain, "value") else domain
-        supported_vals = [
-            d.value if hasattr(d, "value") else d
-            for d in self.supported_domains
-        ]
+        supported_vals = [d.value if hasattr(d, "value") else d for d in self.supported_domains]
         return domain_val in supported_vals

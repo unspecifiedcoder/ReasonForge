@@ -14,11 +14,13 @@ class TestSimilarityDetector:
     def test_import(self):
         """Test that the module can be imported."""
         from reasonforge.embeddings.similarity import SimilarityDetector
+
         detector = SimilarityDetector.__new__(SimilarityDetector)
         assert detector is not None
 
     def test_cosine_similarity_identical(self):
         from reasonforge.embeddings.similarity import SimilarityDetector
+
         detector = SimilarityDetector.__new__(SimilarityDetector)
         # Identical normalized vectors should have similarity 1.0
         a = np.array([1.0, 0.0, 0.0])
@@ -28,6 +30,7 @@ class TestSimilarityDetector:
 
     def test_cosine_similarity_orthogonal(self):
         from reasonforge.embeddings.similarity import SimilarityDetector
+
         detector = SimilarityDetector.__new__(SimilarityDetector)
         a = np.array([1.0, 0.0, 0.0])
         b = np.array([0.0, 1.0, 0.0])
@@ -36,6 +39,7 @@ class TestSimilarityDetector:
 
     def test_cosine_similarity_opposite(self):
         from reasonforge.embeddings.similarity import SimilarityDetector
+
         detector = SimilarityDetector.__new__(SimilarityDetector)
         a = np.array([1.0, 0.0])
         b = np.array([-1.0, 0.0])
@@ -44,6 +48,7 @@ class TestSimilarityDetector:
 
     def test_empty_history_check(self):
         from reasonforge.embeddings.similarity import SimilarityDetector
+
         detector = SimilarityDetector.__new__(SimilarityDetector)
         detector.history_embeddings = []
 
@@ -56,6 +61,7 @@ class TestSimilarityDetector:
 
     def test_empty_batch_check(self):
         from reasonforge.embeddings.similarity import SimilarityDetector
+
         detector = SimilarityDetector.__new__(SimilarityDetector)
 
         class FakeResponse:

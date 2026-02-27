@@ -74,7 +74,7 @@ class TestInputSanitizer:
         assert "Real problem here." in sanitized
 
     def test_sanitize_problem_html(self):
-        problem = '<b>Bold</b> and <i>italic</i> problem'
+        problem = "<b>Bold</b> and <i>italic</i> problem"
         sanitized = InputSanitizer.sanitize_problem(problem)
         assert "<b>" not in sanitized
         assert "Bold" in sanitized
@@ -176,7 +176,9 @@ class TestAnomalyDetector:
 
     def test_anomaly_report(self, detector):
         report = detector.get_anomaly_report(
-            uid=1, time_ms=100, difficulty=5,
+            uid=1,
+            time_ms=100,
+            difficulty=5,
             cms_history=[0.8, 0.801, 0.800, 0.801, 0.800],
         )
         assert report["uid"] == 1

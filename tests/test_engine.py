@@ -14,6 +14,7 @@ from reasonforge.types import DimensionScores, MinerState, ValidatorState
 # Eq. 2 — CMS
 # ──────────────────────────────────────────────
 
+
 class TestCMS:
     def test_cms_computation(self):
         """Eq.2: CMS = 0.40*Q + 0.30*A + 0.15*N + 0.15*Eff"""
@@ -45,6 +46,7 @@ class TestCMS:
 # Eq. 3 — Epoch Score
 # ──────────────────────────────────────────────
 
+
 class TestSEpoch:
     def test_s_epoch_basic(self):
         """Eq.3: S_epoch with known values"""
@@ -72,6 +74,7 @@ class TestSEpoch:
 # ──────────────────────────────────────────────
 # Eq. 4 — PEB
 # ──────────────────────────────────────────────
+
 
 class TestPEB:
     def test_peb_rank1_streak4(self):
@@ -110,6 +113,7 @@ class TestPEB:
 # Eq. 5 — Miner Emission Distribution
 # ──────────────────────────────────────────────
 
+
 class TestMinerEmissions:
     def test_emission_conservation(self):
         """Eq.5: sum(rewards) == pool"""
@@ -147,6 +151,7 @@ class TestMinerEmissions:
 # Eq. 6 — Breakthrough
 # ──────────────────────────────────────────────
 
+
 class TestBreakthrough:
     def test_breakthrough_applied(self):
         """Eq.6: CMS=0.9 on unsolved task -> 0.9 * 2.0 = 1.8"""
@@ -173,6 +178,7 @@ class TestBreakthrough:
 # Eq. 7 — VAS
 # ──────────────────────────────────────────────
 
+
 class TestVAS:
     def test_vas_perfect(self):
         """Eq.7: all scores match consensus -> VAS = 1.0"""
@@ -198,13 +204,20 @@ class TestVAS:
 # Eq. 8 — Validator Emission Distribution
 # ──────────────────────────────────────────────
 
+
 class TestValidatorEmissions:
     def test_validator_emission_conservation(self):
         """Eq.8: sum(validator rewards) == pool"""
         validators = [
-            ValidatorState(validator_id="v1", stake=5000, current_vas=0.95, reputation_multiplier=1.4),
-            ValidatorState(validator_id="v2", stake=3000, current_vas=0.90, reputation_multiplier=1.2),
-            ValidatorState(validator_id="v3", stake=1000, current_vas=0.70, reputation_multiplier=1.0),
+            ValidatorState(
+                validator_id="v1", stake=5000, current_vas=0.95, reputation_multiplier=1.4
+            ),
+            ValidatorState(
+                validator_id="v2", stake=3000, current_vas=0.90, reputation_multiplier=1.2
+            ),
+            ValidatorState(
+                validator_id="v3", stake=1000, current_vas=0.70, reputation_multiplier=1.0
+            ),
         ]
         pool = 10.0
         rewards = ScoringEngine.distribute_validator_emissions(validators, pool)
@@ -213,8 +226,12 @@ class TestValidatorEmissions:
     def test_validator_higher_stake_more_reward(self):
         """Eq.8: higher stake*VAS*rep -> more reward"""
         validators = [
-            ValidatorState(validator_id="v1", stake=5000, current_vas=0.95, reputation_multiplier=1.0),
-            ValidatorState(validator_id="v2", stake=1000, current_vas=0.95, reputation_multiplier=1.0),
+            ValidatorState(
+                validator_id="v1", stake=5000, current_vas=0.95, reputation_multiplier=1.0
+            ),
+            ValidatorState(
+                validator_id="v2", stake=1000, current_vas=0.95, reputation_multiplier=1.0
+            ),
         ]
         rewards = ScoringEngine.distribute_validator_emissions(validators, 10.0)
         assert rewards[0] > rewards[1]
@@ -223,6 +240,7 @@ class TestValidatorEmissions:
 # ──────────────────────────────────────────────
 # Eq. 9 — Trap Penalty
 # ──────────────────────────────────────────────
+
 
 class TestTrapPenalty:
     def test_trap_above_threshold(self):
@@ -248,6 +266,7 @@ class TestTrapPenalty:
 # Eq. 10 — Slash
 # ──────────────────────────────────────────────
 
+
 class TestSlash:
     def test_slash_below_threshold(self):
         """Eq.10: VAS_avg=0.40 -> slash = gamma * stake * (0.60-0.40)^2"""
@@ -270,6 +289,7 @@ class TestSlash:
 # Eq. 11 — Objective Score
 # ──────────────────────────────────────────────
 
+
 class TestObjectiveScore:
     def test_objective_score(self):
         """Eq.11: weighted sum of checks"""
@@ -291,6 +311,7 @@ class TestObjectiveScore:
 # Eq. 12 — Consensus Score
 # ──────────────────────────────────────────────
 
+
 class TestConsensusScore:
     def test_consensus_trimmed_median(self):
         """Eq.12: verify trimming works with 5+ validators"""
@@ -311,7 +332,9 @@ class TestConsensusScore:
         # result = (0.7*2000/9000 + 0.8*3000/9000 + 0.85*2000/9000) / (7000/9000)
         # = (1400 + 2400 + 1700) / 7000 = 5500/7000 = 0.78571...
         total_stake = 9000
-        numerator = 0.7 * (2000 / total_stake) + 0.8 * (3000 / total_stake) + 0.85 * (2000 / total_stake)
+        numerator = (
+            0.7 * (2000 / total_stake) + 0.8 * (3000 / total_stake) + 0.85 * (2000 / total_stake)
+        )
         denom = (2000 + 3000 + 2000) / total_stake
         expected = numerator / denom
         assert abs(result - expected) < 1e-6
@@ -335,6 +358,7 @@ class TestConsensusScore:
 # ──────────────────────────────────────────────
 # Eq. 13 — Final Score
 # ──────────────────────────────────────────────
+
 
 class TestFinalScore:
     def test_final_score(self):

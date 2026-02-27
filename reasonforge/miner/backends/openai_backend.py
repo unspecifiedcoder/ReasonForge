@@ -44,8 +44,7 @@ class OpenAIBackend(LLMBackend):
                 self._client = AsyncOpenAI(**kwargs)
             except ImportError:
                 raise ImportError(
-                    "openai package not installed. "
-                    "Install with: pip install openai>=1.0.0"
+                    "openai package not installed. Install with: pip install openai>=1.0.0"
                 )
         return self._client
 
@@ -86,8 +85,7 @@ class OpenAIBackend(LLMBackend):
             # Request JSON mode
             messages_with_json = messages.copy()
             messages_with_json[-1]["content"] += (
-                "\n\nRespond with valid JSON matching this schema:\n"
-                + json.dumps(schema, indent=2)
+                "\n\nRespond with valid JSON matching this schema:\n" + json.dumps(schema, indent=2)
             )
 
             response = await asyncio.wait_for(

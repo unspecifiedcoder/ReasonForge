@@ -17,6 +17,7 @@ logger = logging.getLogger("reasonforge.gateway.billing")
 @dataclass
 class UsageRecord:
     """Single API usage record."""
+
     key_id: str
     task_id: str
     domain: str = ""

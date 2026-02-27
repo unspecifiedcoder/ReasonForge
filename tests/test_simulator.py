@@ -74,7 +74,9 @@ class TestEpochSimulation:
         mp, vp, ms, vs = default_setup
 
         for epoch in range(1, 4):
-            sim = EpochSimulator(mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch)
+            sim = EpochSimulator(
+                mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch
+            )
             sim.run_epoch()
 
         # At least one miner should have a streak > 1
@@ -102,7 +104,9 @@ class TestEpochSimulation:
 
         # Run multiple epochs so VAS history accumulates
         for epoch in range(1, 8):
-            sim = EpochSimulator(mp, vp2, ms, vs2, epoch_id=epoch, total_emission=100.0, seed=42 + epoch)
+            sim = EpochSimulator(
+                mp, vp2, ms, vs2, epoch_id=epoch, total_emission=100.0, seed=42 + epoch
+            )
             sim.run_epoch()
 
         # Check if BadActor got slashed at some point
@@ -116,7 +120,9 @@ class TestEpochSimulation:
         mp, vp, ms, vs = default_setup
 
         for epoch in range(1, 4):
-            sim = EpochSimulator(mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch)
+            sim = EpochSimulator(
+                mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch
+            )
             sim.run_epoch()  # result used implicitly via miner/validator state mutation
 
         # After 3 epochs, total_tao should be > epoch_tao for top miners

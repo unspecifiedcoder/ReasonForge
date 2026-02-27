@@ -50,9 +50,7 @@ class TestFullEpochCycle:
         assert synapse.task_id
 
         # Simulate miner filling in response
-        synapse.reasoning_steps = [
-            {"step_id": 0, "reasoning": "2+2=4", "confidence": 0.99}
-        ]
+        synapse.reasoning_steps = [{"step_id": 0, "reasoning": "2+2=4", "confidence": 0.99}]
         synapse.final_answer = "4"
         synapse.time_taken_ms = 100
         synapse.submission_hash = synapse.compute_submission_hash()

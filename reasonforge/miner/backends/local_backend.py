@@ -54,8 +54,7 @@ class LocalBackend(LLMBackend):
             logger.info("Loaded transformers model: %s", self.model_name)
         except ImportError:
             raise ImportError(
-                "transformers package not installed. "
-                "Install with: pip install transformers torch"
+                "transformers package not installed. Install with: pip install transformers torch"
             )
 
     def _load_vllm(self):
@@ -67,10 +66,7 @@ class LocalBackend(LLMBackend):
             self._vllm_model = LLM(model=self.model_name)
             logger.info("Loaded vLLM model: %s", self.model_name)
         except ImportError:
-            raise ImportError(
-                "vllm package not installed. "
-                "Install with: pip install vllm"
-            )
+            raise ImportError("vllm package not installed. Install with: pip install vllm")
 
     def _format_messages(self, messages: List[Dict[str, str]]) -> str:
         """Format chat messages into a prompt string."""
@@ -108,9 +104,7 @@ class LocalBackend(LLMBackend):
                     max_tokens=max_tokens,
                 )
                 result = await asyncio.wait_for(
-                    loop.run_in_executor(
-                        None, lambda: self._vllm_model.generate([prompt], params)
-                    ),
+                    loop.run_in_executor(None, lambda: self._vllm_model.generate([prompt], params)),
                     timeout=timeout,
                 )
                 return result[0].outputs[0].text

@@ -31,7 +31,8 @@ class Lean4Checker:
             return self._available
         try:
             proc = await asyncio.create_subprocess_exec(
-                self.lean_path, "--version",
+                self.lean_path,
+                "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -69,22 +70,19 @@ class Lean4Checker:
         tmpfile = None
         try:
             # Write to temp file
-            tmpfile = tempfile.NamedTemporaryFile(
-                suffix=".lean", mode="w", delete=False
-            )
+            tmpfile = tempfile.NamedTemporaryFile(suffix=".lean", mode="w", delete=False)
             tmpfile.write(proof_text)
             tmpfile.flush()
             tmpfile.close()
 
             # Run lean4
             proc = await asyncio.create_subprocess_exec(
-                self.lean_path, tmpfile.name,
+                self.lean_path,
+                tmpfile.name,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=self.timeout
-            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
 
             if proc.returncode == 0:
                 logger.info("Proof verified successfully")

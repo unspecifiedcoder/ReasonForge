@@ -124,9 +124,7 @@ class MigrationManager:
             if version > current:
                 logger.info("Applying migration %d: %s", version, description)
                 self.conn.executescript(sql)
-                self.conn.execute(
-                    "UPDATE schema_version SET version = ?", (version,)
-                )
+                self.conn.execute("UPDATE schema_version SET version = ?", (version,))
                 self.conn.commit()
                 applied += 1
                 current = version

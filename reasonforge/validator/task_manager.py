@@ -63,12 +63,11 @@ class TaskManager:
                     logger.warning("Failed to load %s: %s", json_file, e)
 
         total = sum(len(v) for v in self.benchmark_tasks.values())
-        logger.info("Loaded %d total benchmark tasks across %d domains",
-                     total, len(self.benchmark_tasks))
+        logger.info(
+            "Loaded %d total benchmark tasks across %d domains", total, len(self.benchmark_tasks)
+        )
 
-    def generate_epoch_tasks(
-        self, count: int = 12, trap_rate: float = TRAP_RATE
-    ) -> List[Task]:
+    def generate_epoch_tasks(self, count: int = 12, trap_rate: float = TRAP_RATE) -> List[Task]:
         """Generate a balanced set of tasks for one epoch."""
         n_traps = max(1, int(count * trap_rate))
         n_regular = count - n_traps
@@ -104,8 +103,7 @@ class TaskManager:
             available = self.benchmark_tasks.get(domain_key, [])
 
             # Filter out already-used tasks
-            available = [t for t in available
-                        if t.get("task_id", "") not in self.used_task_ids]
+            available = [t for t in available if t.get("task_id", "") not in self.used_task_ids]
 
             if available:
                 sampled = self.rng.sample(available, min(per_domain, len(available)))
@@ -167,15 +165,17 @@ class TaskManager:
                 problem = self.rng.choice(templates)
             else:
                 problem = f"Solve a {domain.value} reasoning problem."
-            tasks.append(Task(
-                task_id=str(uuid.uuid4()),
-                problem=problem,
-                domain=domain,
-                difficulty=self.rng.randint(2, 9),
-                source=TaskSource.SYNTHETIC,
-                is_trap=False,
-                previously_unsolved=self.rng.random() < 0.05,
-            ))
+            tasks.append(
+                Task(
+                    task_id=str(uuid.uuid4()),
+                    problem=problem,
+                    domain=domain,
+                    difficulty=self.rng.randint(2, 9),
+                    source=TaskSource.SYNTHETIC,
+                    is_trap=False,
+                    previously_unsolved=self.rng.random() < 0.05,
+                )
+            )
         return tasks
 
     def _generate_synthetic_traps(self, count: int) -> List[Task]:
@@ -187,19 +187,22 @@ class TaskManager:
             domain = self.rng.choice(list(Domain))
             templates = TRAP_TEMPLATES.get(domain, TRAP_TEMPLATES[Domain.MATHEMATICS])
             problem, truth = self.rng.choice(templates)
-            traps.append(Task(
-                task_id=str(uuid.uuid4()),
-                problem=problem,
-                domain=domain,
-                difficulty=self.rng.randint(2, 5),
-                source=TaskSource.TRAP,
-                is_trap=True,
-                ground_truth_score=truth,
-            ))
+            traps.append(
+                Task(
+                    task_id=str(uuid.uuid4()),
+                    problem=problem,
+                    domain=domain,
+                    difficulty=self.rng.randint(2, 5),
+                    source=TaskSource.TRAP,
+                    is_trap=True,
+                    ground_truth_score=truth,
+                )
+            )
         return traps
 
-    def submit_api_task(self, problem: str, domain: str | None = None,
-                        difficulty: int | None = None) -> Task:
+    def submit_api_task(
+        self, problem: str, domain: str | None = None, difficulty: int | None = None
+    ) -> Task:
         """Accept an external task submission via the API gateway."""
         task = Task(
             task_id=str(uuid.uuid4()),

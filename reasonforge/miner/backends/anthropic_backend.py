@@ -37,8 +37,7 @@ class AnthropicBackend(LLMBackend):
                 self._client = AsyncAnthropic(api_key=self.api_key)
             except ImportError:
                 raise ImportError(
-                    "anthropic package not installed. "
-                    "Install with: pip install anthropic>=0.20.0"
+                    "anthropic package not installed. Install with: pip install anthropic>=0.20.0"
                 )
         return self._client
 

@@ -16,6 +16,7 @@ from typing import Tuple
 # Conditional bittensor import
 try:
     import bittensor as bt
+
     HAS_BITTENSOR = True
 except ImportError:
     HAS_BITTENSOR = False
@@ -43,8 +44,11 @@ class ReasonForgeMiner(BaseNeuron):
             api_key_env=getattr(self.config, "miner.api_key_env", "OPENAI_API_KEY"),
             max_concurrent=getattr(self.config, "miner.max_concurrent", 4),
             port=getattr(self.config, "miner.port", 8091),
-            domains=getattr(self.config, "miner.domains",
-                          ["mathematics", "code", "scientific", "strategic", "causal", "ethical"]),
+            domains=getattr(
+                self.config,
+                "miner.domains",
+                ["mathematics", "code", "scientific", "strategic", "causal", "ethical"],
+            ),
         )
 
         # Initialize reasoning engine
@@ -84,7 +88,9 @@ class ReasonForgeMiner(BaseNeuron):
             try:
                 logger.info(
                     "Processing task %s (domain=%s, difficulty=%d)",
-                    synapse.task_id, synapse.domain, synapse.difficulty,
+                    synapse.task_id,
+                    synapse.domain,
+                    synapse.difficulty,
                 )
 
                 # Execute reasoning
@@ -120,7 +126,8 @@ class ReasonForgeMiner(BaseNeuron):
 
                 logger.info(
                     "Task %s completed in %dms (%d steps)",
-                    synapse.task_id, synapse.time_taken_ms,
+                    synapse.task_id,
+                    synapse.time_taken_ms,
                     len(synapse.reasoning_steps),
                 )
 
@@ -133,9 +140,7 @@ class ReasonForgeMiner(BaseNeuron):
 
         return synapse
 
-    def blacklist_reasoning_task(
-        self, synapse: ReasoningTask
-    ) -> Tuple[bool, str]:
+    def blacklist_reasoning_task(self, synapse: ReasoningTask) -> Tuple[bool, str]:
         """Reject requests from non-validators or unregistered neurons."""
         if not HAS_BITTENSOR or self.metagraph is None:
             return False, ""

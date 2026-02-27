@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 # Synapse base: use real bt.Synapse if available, else a Pydantic shim
 # ──────────────────────────────────────────────
 
+
 class _DendriteMetadata(BaseModel):
     hotkey: str = ""
     ip: str = ""
@@ -47,7 +48,11 @@ class _SynapseShim(BaseModel):
 
     def body_hash(self) -> str:
         data = json.dumps(
-            {k: v for k, v in self.model_dump().items() if k in getattr(self, "required_hash_fields", [])},
+            {
+                k: v
+                for k, v in self.model_dump().items()
+                if k in getattr(self, "required_hash_fields", [])
+            },
             sort_keys=True,
         )
         return hashlib.sha256(data.encode()).hexdigest()

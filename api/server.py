@@ -75,6 +75,7 @@ app.add_middleware(
 # Request/Response Models
 # ──────────────────────────────────────────────
 
+
 class SimulateRequest(BaseModel):
     epochs: int = 5
     emission: float = 100.0
@@ -84,6 +85,7 @@ class SimulateRequest(BaseModel):
 # ──────────────────────────────────────────────
 # Endpoints
 # ──────────────────────────────────────────────
+
 
 @app.get("/api/health")
 async def health():
@@ -153,7 +155,7 @@ async def simulate_stream(
             yield f"data: {data}\n\n"
             await asyncio.sleep(0.1)  # Small delay between epochs
 
-        yield "data: {\"done\": true}\n\n"
+        yield 'data: {"done": true}\n\n'
 
     return StreamingResponse(
         event_generator(),
@@ -214,9 +216,7 @@ async def constants():
             "CONSENSUS_TRIM_DELTA": CONSENSUS_TRIM_DELTA,
         },
         "difficulty_multiplier": DIFFICULTY_MULTIPLIER,
-        "domain_check_weights": {
-            d.value: w for d, w in DOMAIN_CHECK_WEIGHTS.items()
-        },
+        "domain_check_weights": {d.value: w for d, w in DOMAIN_CHECK_WEIGHTS.items()},
     }
 
 

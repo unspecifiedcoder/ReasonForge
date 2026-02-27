@@ -33,8 +33,7 @@ class TestMathChecker:
 
     def test_verify_unverifiable(self, checker):
         score = checker.verify(
-            "Prove the Riemann hypothesis",
-            "This is a complex proof involving..."
+            "Prove the Riemann hypothesis", "This is a complex proof involving..."
         )
         assert score == 0.5  # Can't verify
 
@@ -69,9 +68,11 @@ class TestFactChecker:
         assert score == 0.0
 
     def test_scientific_claims(self, checker):
-        text = ("The hypothesis was tested using a control group. "
-                "Data analysis showed significant results with p < 0.05. "
-                "The experiment measured 3.14 kg of material.")
+        text = (
+            "The hypothesis was tested using a control group. "
+            "Data analysis showed significant results with p < 0.05. "
+            "The experiment measured 3.14 kg of material."
+        )
         score = checker.verify_scientific_claims("scientific", text)
         assert score > 0.5
 
@@ -88,6 +89,7 @@ class TestLean4Checker:
         """If Lean 4 is not installed, should return 0.5."""
         checker._available = False
         import base64
+
         proof = base64.b64encode(b"theorem test : True := trivial").decode()
         score = await checker.verify(proof)
         assert score == 0.5
@@ -102,6 +104,7 @@ class TestLean4Checker:
     async def test_oversized_proof(self, checker):
         checker._available = True
         import base64
+
         big_proof = base64.b64encode(b"x" * 200_000).decode()
         score = await checker.verify(big_proof)
         assert score == 0.0
@@ -138,6 +141,7 @@ class TestCodeSandbox:
     @pytest.mark.asyncio
     async def test_lint_basic(self, sandbox):
         import base64
+
         code = '''
 def hello(name: str) -> str:
     """Say hello."""
@@ -153,6 +157,7 @@ def hello(name: str) -> str:
     @pytest.mark.asyncio
     async def test_lint_minimal(self, sandbox):
         import base64
+
         code = "x=1"
         code_b64 = base64.b64encode(code.encode()).decode()
         score = await sandbox.lint(code_b64)

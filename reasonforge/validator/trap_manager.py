@@ -60,7 +60,9 @@ class TrapManager:
             return 0.0
 
         if "prime" in problem_lower and "7" in problem_lower:
-            if "prime" in answer_lower and ("yes" in answer_lower or "is prime" in answer_lower or "true" in answer_lower):
+            if "prime" in answer_lower and (
+                "yes" in answer_lower or "is prime" in answer_lower or "true" in answer_lower
+            ):
                 return 0.95
             return 0.2
 
@@ -91,7 +93,9 @@ class TrapManager:
         return 0.5 if len(answer) > 50 else 0.2
 
     def _evaluate_general_trap(
-        self, task: Task, answer: str,
+        self,
+        task: Task,
+        answer: str,
         reasoning_steps: list[dict] | None = None,
     ) -> float:
         """Evaluate general trap response."""
@@ -123,6 +127,7 @@ class TrapManager:
         if not scores:
             return 1.0
         from ..engine import ScoringEngine
+
         return ScoringEngine.compute_trap_penalty(scores)
 
     def reset_epoch(self) -> None:

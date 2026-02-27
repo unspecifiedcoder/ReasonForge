@@ -56,6 +56,7 @@ _epoch_data: dict = {"epoch_id": 0, "miner_states": {}}
 
 # ── Auth Dependency ──
 
+
 async def verify_api_key(x_api_key: str = Header(None)) -> dict:
     """Verify API key from request header."""
     if not x_api_key:
@@ -68,6 +69,7 @@ async def verify_api_key(x_api_key: str = Header(None)) -> dict:
 
 # ── Rate Limit Dependency ──
 
+
 async def check_rate_limit(request: Request) -> None:
     """Check per-IP rate limits."""
     client_ip = request.client.host if request.client else "unknown"
@@ -79,6 +81,7 @@ async def check_rate_limit(request: Request) -> None:
 
 
 # ── Endpoints ──
+
 
 @app.get("/v1/health", response_model=HealthResponse)
 async def health_check():
@@ -168,14 +171,16 @@ async def get_leaderboard(domain: Optional[str] = None, limit: int = 20):
     entries = []
 
     for uid_str, ms in miners.items():
-        entries.append(LeaderboardEntry(
-            uid=int(uid_str),
-            s_epoch=ms.get("s_epoch", 0.0),
-            peb=ms.get("peb", 0.0),
-            rank=ms.get("rank", 0),
-            streak=ms.get("streak", 0),
-            tasks_completed=ms.get("task_count", 0),
-        ))
+        entries.append(
+            LeaderboardEntry(
+                uid=int(uid_str),
+                s_epoch=ms.get("s_epoch", 0.0),
+                peb=ms.get("peb", 0.0),
+                rank=ms.get("rank", 0),
+                streak=ms.get("streak", 0),
+                tasks_completed=ms.get("task_count", 0),
+            )
+        )
 
     entries.sort(key=lambda e: e.s_epoch, reverse=True)
     entries = entries[:limit]

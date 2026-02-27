@@ -23,6 +23,7 @@ class MathChecker:
         if self._sympy_available is None:
             try:
                 import sympy  # noqa: F401
+
                 self._sympy_available = True
             except ImportError:
                 self._sympy_available = False
@@ -94,7 +95,7 @@ class MathChecker:
             # Remove common text around the answer
             for prefix in ["=", "is", "equals", "the answer is"]:
                 if answer_clean.lower().startswith(prefix):
-                    answer_clean = answer_clean[len(prefix):].strip()
+                    answer_clean = answer_clean[len(prefix) :].strip()
 
             # Try to parse
             try:
