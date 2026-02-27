@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  validator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.validator
+    container_name: reasonforge-validator-local
+    ports:
+      - "9092:9092"
+      - "8092:8092"
+    environment:
+      - NETUID=1
+      - SUBTENSOR_NETWORK=local
+      - SUBTENSOR_CHAIN_ENDPOINT=ws://subtensor:9944
+      - WALLET_NAME=owner
+      - WALLET_HOTKEY=validator
+      - LOGGING_LEVEL=DEBUG
+    volumes:
+      - wallet-data:/root/.bittensor
+    networks:
+      - localnet
+
+  miner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.miner
+    container_name: reasonforge-miner-local
+    ports:
+      - "9091:9091"
+    environment:
+      - NETUID=1
+      - SUBTENSOR_NETWORK=local
+      - SUBTENSOR_CHAIN_ENDPOINT=ws://subtensor:9944
+      - WALLET_NAME=owner
+      - WALLET_HOTKEY=miner
+      - LOGGING_LEVEL=DEBUG
+    volumes:
+      - wallet-data:/root/.bittensor
+    networks:
+      - localnet
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gateway
+    container_name: reasonforge-gateway-local
+    ports:
+      - "8000:8000"
+    environment:
+      - NETUID=1
+      - SUBTENSOR_NETWORK=local
+      - SUBTENSOR_CHAIN_ENDPOINT=ws://subtensor:9944
+      - LOGGING_LEVEL=DEBUG
+    networks:
+      - localnet
+    depends_on:
+      - validator
+
+  sandbox:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sandbox
+    container_name: reasonforge-sandbox-local
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - sandbox-net
+
+volumes:
+  wallet-data:
+
+networks:
+  localnet:
+    driver: bridge
+  sandbox-net:
+    driver: bridge
+    internal: true

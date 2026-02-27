@@ -1,0 +1,133 @@
+version: "3.8"
+
+services:
+  validator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.validator
+      args:
+        INSTALL_LEAN: "${INSTALL_LEAN:-false}"
+    container_name: reasonforge-validator
+    restart: unless-stopped
+    ports:
+      - "${VALIDATOR_PORT:-9092}:9092"
+      - "${VALIDATOR_METRICS_PORT:-8092}:8092"
+    environment:
+      - NETUID=${NETUID:-1}
+      - SUBTENSOR_NETWORK=${SUBTENSOR_NETWORK:-finney}
+      - SUBTENSOR_CHAIN_ENDPOINT=${SUBTENSOR_CHAIN_ENDPOINT:-}
+      - WALLET_NAME=${WALLET_NAME:-default}
+      - WALLET_HOTKEY=${WALLET_HOTKEY:-default}
+      - LOGGING_LEVEL=${LOGGING_LEVEL:-INFO}
+    volumes:
+      - wallet-data:/root/.bittensor
+      - validator-data:/app/data
+    networks:
+      - reasonforge-net
+    depends_on:
+      - sandbox
+
+  miner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.miner
+    container_name: reasonforge-miner
+    restart: unless-stopped
+    ports:
+      - "${MINER_PORT:-9091}:9091"
+    environment:
+      - NETUID=${NETUID:-1}
+      - SUBTENSOR_NETWORK=${SUBTENSOR_NETWORK:-finney}
+      - SUBTENSOR_CHAIN_ENDPOINT=${SUBTENSOR_CHAIN_ENDPOINT:-}
+      - WALLET_NAME=${WALLET_NAME:-default}
+      - WALLET_HOTKEY=${WALLET_HOTKEY:-default}
+      - LOGGING_LEVEL=${LOGGING_LEVEL:-INFO}
+    volumes:
+      - wallet-data:/root/.bittensor
+      - miner-data:/app/data
+    networks:
+      - reasonforge-net
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gateway
+    container_name: reasonforge-gateway
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8000}:8000"
+    environment:
+      - NETUID=${NETUID:-1}
+      - SUBTENSOR_NETWORK=${SUBTENSOR_NETWORK:-finney}
+      - SUBTENSOR_CHAIN_ENDPOINT=${SUBTENSOR_CHAIN_ENDPOINT:-}
+      - LOGGING_LEVEL=${LOGGING_LEVEL:-INFO}
+    networks:
+      - reasonforge-net
+    depends_on:
+      - validator
+
+  sandbox:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sandbox
+    container_name: reasonforge-sandbox
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=100M
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    networks:
+      - sandbox-net
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: reasonforge-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/alerts:/etc/prometheus/alerts:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=30d"
+    networks:
+      - reasonforge-net
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: reasonforge-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - reasonforge-net
+    depends_on:
+      - prometheus
+
+volumes:
+  wallet-data:
+  validator-data:
+  miner-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  reasonforge-net:
+    driver: bridge
+  sandbox-net:
+    driver: bridge
+    internal: true
