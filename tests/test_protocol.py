@@ -4,15 +4,13 @@ ReasonForge - Protocol Tests
 Tests for Synapse serialization, deserialization, and hash verification.
 """
 
-import json
-import pytest
 
 from reasonforge.protocol import (
-    ReasoningTask,
     HealthCheck,
+    ReasoningTask,
     TaskResult,
-    verify_submission_hash,
     create_reasoning_task,
+    verify_submission_hash,
 )
 
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 
 logger = logging.getLogger("reasonforge.validator.weight_setter")
 
@@ -19,7 +19,7 @@ except ImportError:
     HAS_TORCH = False
 
 try:
-    import bittensor as bt
+    import bittensor as bt  # noqa: F401
     HAS_BITTENSOR = True
 except ImportError:
     HAS_BITTENSOR = False

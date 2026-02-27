@@ -8,9 +8,9 @@ Provides the objective component of the scoring pipeline.
 from __future__ import annotations
 
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
-from ..types import Domain, Task, DimensionScores, DOMAIN_CHECK_WEIGHTS
+from ..types import DOMAIN_CHECK_WEIGHTS, Domain, Task
 
 logger = logging.getLogger("reasonforge.validator.objective_scorer")
 
@@ -132,7 +132,7 @@ class ObjectiveScorer:
         return checks
 
     async def _check_causal(self, task: Task, response: dict) -> Dict[str, float]:
-        steps = response.get("steps", [])
+        _steps = response.get("steps", [])  # noqa: F841 — reserved for future causal DAG checks
         answer = response.get("final_answer", "").lower()
         checks = {
             "docalculus": 0.7 if any(kw in answer for kw in ["do(", "intervention", "do-calculus"]) else 0.3,

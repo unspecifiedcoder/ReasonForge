@@ -5,7 +5,6 @@ Tests for similarity detection using sentence embeddings.
 Note: Actual embedding model tests require sentence-transformers installed.
 """
 
-import pytest
 import numpy as np
 
 

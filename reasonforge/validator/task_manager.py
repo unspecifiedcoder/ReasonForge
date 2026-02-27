@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import random
 import uuid
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from ..types import Domain, Task, TaskSource, TRAP_RATE
+from ..types import TRAP_RATE, Domain, Task, TaskSource
 
 logger = logging.getLogger("reasonforge.validator.task_manager")
 
@@ -77,7 +76,7 @@ class TaskManager:
         tasks = []
 
         # 1. Check for API-submitted tasks first
-        api_tasks = []
+        api_tasks: list = []
         while self.api_queue and len(api_tasks) < n_regular // 2:
             api_tasks.append(self.api_queue.pop(0))
         tasks.extend(api_tasks)

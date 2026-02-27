@@ -22,7 +22,7 @@ class MathChecker:
     def _check_sympy(self) -> bool:
         if self._sympy_available is None:
             try:
-                import sympy
+                import sympy  # noqa: F401
                 self._sympy_available = True
             except ImportError:
                 self._sympy_available = False
@@ -85,7 +85,7 @@ class MathChecker:
     def _verify_symbolic(self, problem: str, answer: str) -> Optional[float]:
         """Try symbolic verification using SymPy."""
         try:
-            from sympy import sympify, simplify, Eq
+            from sympy import Eq, simplify, sympify  # noqa: F401
             from sympy.parsing.sympy_parser import parse_expr
 
             # Try to parse the answer as a SymPy expression
@@ -98,7 +98,7 @@ class MathChecker:
 
             # Try to parse
             try:
-                expr = parse_expr(answer_clean)
+                _expr = parse_expr(answer_clean)  # noqa: F841
                 # If we can parse it, it's at least mathematically valid
                 return 0.6
             except Exception:
@@ -117,7 +117,7 @@ class MathChecker:
             return 0.5
 
         try:
-            from sympy import sympify, simplify
+            from sympy import simplify, sympify
 
             lhs_expr = sympify(lhs)
             rhs_expr = sympify(rhs)

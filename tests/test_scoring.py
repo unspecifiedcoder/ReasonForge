@@ -6,12 +6,12 @@ and integration with the MVP engine.
 """
 
 import pytest
-from reasonforge.types import Task, Domain, DimensionScores, MinerState
-from reasonforge.engine import ScoringEngine
+
+from reasonforge.types import DimensionScores, Domain, Task
+from reasonforge.validator.consensus import compute_consensus_score
 from reasonforge.validator.scoring import ValidatorScorer
 from reasonforge.validator.trap_manager import TrapManager
 from reasonforge.validator.weight_setter import WeightSetter
-from reasonforge.validator.consensus import compute_consensus_score
 
 
 class TestValidatorScorer:

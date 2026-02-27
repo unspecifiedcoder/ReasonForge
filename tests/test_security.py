@@ -5,13 +5,12 @@ Tests for input sanitization, rate guarding, and anomaly detection.
 """
 
 import base64
-import time
 
 import pytest
 
-from reasonforge.security.sanitizer import InputSanitizer
-from reasonforge.security.rate_guard import RateGuard
 from reasonforge.security.anomaly import AnomalyDetector
+from reasonforge.security.rate_guard import RateGuard
+from reasonforge.security.sanitizer import InputSanitizer
 
 
 class TestInputSanitizer:

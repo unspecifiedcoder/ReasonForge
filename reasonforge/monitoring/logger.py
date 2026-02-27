@@ -71,7 +71,7 @@ def setup_logging(
         console_handler.setLevel(level)
 
         # File handler
-        handlers = [console_handler]
+        handlers: list = [console_handler]
         if log_file:
             file_handler = logging.FileHandler(log_file)
             file_handler.setFormatter(formatter)

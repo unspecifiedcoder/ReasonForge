@@ -8,12 +8,10 @@ and serves continuously responding to validator queries.
 from __future__ import annotations
 
 import asyncio
-import hashlib
-import json
 import logging
 import time
 import traceback
-from typing import List, Optional, Tuple
+from typing import Tuple
 
 # Conditional bittensor import
 try:
@@ -22,10 +20,10 @@ try:
 except ImportError:
     HAS_BITTENSOR = False
 
+from reasonforge.base.config import MinerConfig
 from reasonforge.base.neuron import BaseNeuron
-from reasonforge.base.config import MinerConfig, create_parser
-from reasonforge.protocol import ReasoningTask, HealthCheck, TaskResult
 from reasonforge.miner.reasoning import ReasoningEngine
+from reasonforge.protocol import HealthCheck, ReasoningTask, TaskResult
 
 logger = logging.getLogger("reasonforge.miner")
 

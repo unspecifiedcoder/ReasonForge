@@ -9,17 +9,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
-import sys
-from typing import List
+from typing import List, Optional
 
-from .types import EMISSION_MINER_SHARE, EMISSION_VALIDATOR_SHARE, PEB_K, TASKS_PER_EPOCH, TRAP_RATE
 from .simulator import (
     EpochSimulator,
     create_default_miners,
     create_default_validators,
 )
-
+from .types import EMISSION_MINER_SHARE, EMISSION_VALIDATOR_SHARE, PEB_K, TASKS_PER_EPOCH, TRAP_RATE
 
 BANNER = r"""
   ____                            _____
@@ -32,7 +29,7 @@ BANNER = r"""
 """
 
 
-def format_table(headers: List[str], rows: List[List[str]], col_widths: List[int] = None) -> str:
+def format_table(headers: List[str], rows: List[List[str]], col_widths: Optional[List[int]] = None) -> str:
     """Format a simple ASCII table."""
     if not col_widths:
         col_widths = []
@@ -60,7 +57,7 @@ def format_table(headers: List[str], rows: List[List[str]], col_widths: List[int
     return "\n".join(lines)
 
 
-def run_simulation(epochs: int, emission: float, output: str = None, seed: int = None, verbose: bool = False):
+def run_simulation(epochs: int, emission: float, output: Optional[str] = None, seed: Optional[int] = None, verbose: bool = False):
     """Run the full multi-epoch simulation."""
 
     print(BANNER)
@@ -169,7 +166,7 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
             print(f"  {line}")
 
         if verbose:
-            print(f"\n  [Verbose] Per-task CMS values:")
+            print("\n  [Verbose] Per-task CMS values:")
             for m in result.miner_results:
                 print(f"    {m['name']}: S_epoch={m['s_epoch']:.4f}")
 
@@ -204,7 +201,7 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
               f"Total: {v['total_tao']:.2f} TAO  Slashed: {v['slashed']:.4f}  {indicator}")
 
     # Key observations
-    print(f"\n  KEY OBSERVATIONS:")
+    print("\n  KEY OBSERVATIONS:")
     # Find adversarial miners
     bottom = final_miners[-2:]
     for m in bottom:

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List
 
 logger = logging.getLogger("reasonforge.monitoring.health")
 
@@ -29,9 +29,9 @@ class HealthChecker:
 
     def __init__(self):
         self._start_time = time.time()
-        self._checks: Dict[str, callable] = {}
+        self._checks: Dict[str, Callable[[], bool]] = {}
 
-    def register_check(self, name: str, check_fn: callable) -> None:
+    def register_check(self, name: str, check_fn: Callable[[], bool]) -> None:
         """Register a health check function. Should return bool."""
         self._checks[name] = check_fn
 

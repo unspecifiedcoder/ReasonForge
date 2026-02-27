@@ -20,7 +20,7 @@ class ProofResult:
     """Result of a proof generation attempt."""
     status: str = "NONE"  # "VERIFIED" | "FAILED" | "NONE"
     artifact: Optional[str] = None  # Base64-encoded proof file
-    fragments: list[str] = None  # Per-step proof fragments
+    fragments: Optional[list[str]] = None  # Per-step proof fragments
 
     def __post_init__(self):
         if self.fragments is None:

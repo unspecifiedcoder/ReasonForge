@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-import sys
 import os
+import sys
 from typing import Optional
 
 # Add parent directory to path so we can import reasonforge
@@ -21,39 +21,38 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from reasonforge.types import (
-    DIFFICULTY_MULTIPLIER,
-    DOMAIN_CHECK_WEIGHTS,
-    EMISSION_MINER_SHARE,
-    EMISSION_VALIDATOR_SHARE,
-    PEB_ALPHA,
-    PEB_K,
-    PEB_STREAK_CAP,
-    BREAKTHROUGH_MULTIPLIER,
-    BREAKTHROUGH_THRESHOLD,
-    TRAP_RATE,
-    TRAP_THRESHOLD,
-    SIMILARITY_THRESHOLD,
-    SIMILARITY_PENALTY,
-    VAS_SLASH_THRESHOLD,
-    VAS_SLASH_GAMMA,
-    VAS_REP_THRESHOLD,
-    VAS_REP_MAX_MULTIPLIER,
-    TASKS_PER_EPOCH,
-    VALIDATORS_PER_TASK,
-    OBJECTIVE_WEIGHT,
-    CONSENSUS_WEIGHT,
-    CONSENSUS_TRIM_DELTA,
-    W_QUALITY,
-    W_ACCURACY,
-    W_NOVELTY,
-    W_EFFICIENCY,
-    Domain,
-)
 from reasonforge.simulator import (
     EpochSimulator,
     create_default_miners,
     create_default_validators,
+)
+from reasonforge.types import (
+    BREAKTHROUGH_MULTIPLIER,
+    BREAKTHROUGH_THRESHOLD,
+    CONSENSUS_TRIM_DELTA,
+    CONSENSUS_WEIGHT,
+    DIFFICULTY_MULTIPLIER,
+    DOMAIN_CHECK_WEIGHTS,
+    EMISSION_MINER_SHARE,
+    EMISSION_VALIDATOR_SHARE,
+    OBJECTIVE_WEIGHT,
+    PEB_ALPHA,
+    PEB_K,
+    PEB_STREAK_CAP,
+    SIMILARITY_PENALTY,
+    SIMILARITY_THRESHOLD,
+    TASKS_PER_EPOCH,
+    TRAP_RATE,
+    TRAP_THRESHOLD,
+    VALIDATORS_PER_TASK,
+    VAS_REP_MAX_MULTIPLIER,
+    VAS_REP_THRESHOLD,
+    VAS_SLASH_GAMMA,
+    VAS_SLASH_THRESHOLD,
+    W_ACCURACY,
+    W_EFFICIENCY,
+    W_NOVELTY,
+    W_QUALITY,
 )
 
 app = FastAPI(

@@ -18,43 +18,47 @@ from pydantic import BaseModel, Field
 # Synapse base: use real bt.Synapse if available, else a Pydantic shim
 # ──────────────────────────────────────────────
 
+class _DendriteMetadata(BaseModel):
+    hotkey: str = ""
+    ip: str = ""
+    port: int = 0
+
+
+class _AxonMetadata(BaseModel):
+    hotkey: str = ""
+    ip: str = ""
+    port: int = 0
+
+
+class _SynapseShim(BaseModel):
+    """Minimal Synapse shim for environments without bittensor."""
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    dendrite: Optional[_DendriteMetadata] = None
+    axon: Optional[_AxonMetadata] = None
+
+    def deserialize(self) -> dict:
+        return self.model_dump()
+
+    def to_headers(self) -> dict:
+        return {}
+
+    def body_hash(self) -> str:
+        data = json.dumps(
+            {k: v for k, v in self.model_dump().items() if k in getattr(self, "required_hash_fields", [])},
+            sort_keys=True,
+        )
+        return hashlib.sha256(data.encode()).hexdigest()
+
+
 try:
     import bittensor as bt
 
     SynapseBase = bt.Synapse
 except ImportError:
-
-    class _DendriteMetadata(BaseModel):
-        hotkey: str = ""
-        ip: str = ""
-        port: int = 0
-
-    class _AxonMetadata(BaseModel):
-        hotkey: str = ""
-        ip: str = ""
-        port: int = 0
-
-    class SynapseBase(BaseModel):
-        """Minimal Synapse shim for environments without bittensor."""
-
-        class Config:
-            arbitrary_types_allowed = True
-
-        dendrite: Optional[_DendriteMetadata] = None
-        axon: Optional[_AxonMetadata] = None
-
-        def deserialize(self) -> dict:
-            return self.model_dump()
-
-        def to_headers(self) -> dict:
-            return {}
-
-        def body_hash(self) -> str:
-            data = json.dumps(
-                {k: v for k, v in self.model_dump().items() if k in getattr(self, "required_hash_fields", [])},
-                sort_keys=True,
-            )
-            return hashlib.sha256(data.encode()).hexdigest()
+    SynapseBase = _SynapseShim  # type: ignore[misc, assignment]
 
 
 # ──────────────────────────────────────────────
@@ -62,7 +66,7 @@ except ImportError:
 # ──────────────────────────────────────────────
 
 
-class ReasoningTask(SynapseBase):
+class ReasoningTask(SynapseBase):  # type: ignore[valid-type, misc]
     """Validator -> Miner: Here is a reasoning task to solve."""
 
     # -- Immutable fields (set by validator, read by miner) --
@@ -104,7 +108,7 @@ class ReasoningTask(SynapseBase):
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
-class HealthCheck(SynapseBase):
+class HealthCheck(SynapseBase):  # type: ignore[valid-type, misc]
     """Validator -> Miner: Are you alive and what are your capabilities?"""
 
     status: Optional[str] = None
@@ -123,7 +127,7 @@ class HealthCheck(SynapseBase):
         }
 
 
-class TaskResult(SynapseBase):
+class TaskResult(SynapseBase):  # type: ignore[valid-type, misc]
     """Validator -> Miner: Here are your scores for a batch of tasks (informational)."""
 
     epoch_id: int = 0

@@ -13,7 +13,7 @@ import time
 import traceback
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 try:
     import torch
@@ -27,18 +27,22 @@ try:
 except ImportError:
     HAS_BITTENSOR = False
 
-from reasonforge.base.neuron import BaseNeuron
 from reasonforge.base.config import ValidatorConfig
+from reasonforge.base.neuron import BaseNeuron
 from reasonforge.engine import ScoringEngine
-from reasonforge.protocol import ReasoningTask, TaskResult, verify_submission_hash
+from reasonforge.protocol import ReasoningTask, verify_submission_hash
 from reasonforge.types import (
-    DimensionScores, MinerState, SIMILARITY_PENALTY, SIMILARITY_THRESHOLD,
-    PEB_K, Task,
+    PEB_K,
+    SIMILARITY_PENALTY,
+    SIMILARITY_THRESHOLD,
+    DimensionScores,
+    MinerState,
+    Task,
 )
 from reasonforge.validator.scoring import ValidatorScorer
-from reasonforge.validator.weight_setter import WeightSetter
 from reasonforge.validator.task_manager import TaskManager
 from reasonforge.validator.trap_manager import TrapManager
+from reasonforge.validator.weight_setter import WeightSetter
 
 logger = logging.getLogger("reasonforge.validator")
 

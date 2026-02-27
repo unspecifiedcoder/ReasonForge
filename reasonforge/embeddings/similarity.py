@@ -8,7 +8,7 @@ Uses sentence-transformers/all-MiniLM-L6-v2 (fast, 384-dim).
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 

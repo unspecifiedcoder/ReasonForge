@@ -5,14 +5,13 @@ Tests the full epoch simulation lifecycle.
 """
 
 import pytest
-from reasonforge.types import EMISSION_MINER_SHARE, EMISSION_VALIDATOR_SHARE
+
 from reasonforge.simulator import (
     EpochSimulator,
-    MinerProfile,
-    ValidatorProfile,
     create_default_miners,
     create_default_validators,
 )
+from reasonforge.types import EMISSION_MINER_SHARE, EMISSION_VALIDATOR_SHARE
 
 
 @pytest.fixture
@@ -118,7 +117,7 @@ class TestEpochSimulation:
 
         for epoch in range(1, 4):
             sim = EpochSimulator(mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch)
-            result = sim.run_epoch()
+            sim.run_epoch()  # result used implicitly via miner/validator state mutation
 
         # After 3 epochs, total_tao should be > epoch_tao for top miners
         for m in ms:

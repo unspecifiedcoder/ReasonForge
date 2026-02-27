@@ -6,11 +6,9 @@ Each test states which equation is being tested.
 """
 
 import math
-import pytest
 
-from reasonforge.types import DimensionScores, MinerState, ValidatorState
 from reasonforge.engine import ScoringEngine
-
+from reasonforge.types import DimensionScores, MinerState, ValidatorState
 
 # ──────────────────────────────────────────────
 # Eq. 2 — CMS

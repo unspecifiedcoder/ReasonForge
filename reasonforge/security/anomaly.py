@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import statistics
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 logger = logging.getLogger("reasonforge.security.anomaly")
 

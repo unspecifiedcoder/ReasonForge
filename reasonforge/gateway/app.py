@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import APIKeyManager
 from .billing import BillingTracker
-from .rate_limiter import PerIPRateLimiter, TokenBucketRateLimiter
+from .rate_limiter import PerIPRateLimiter
 from .schemas import (
     HealthResponse,
     LeaderboardEntry,

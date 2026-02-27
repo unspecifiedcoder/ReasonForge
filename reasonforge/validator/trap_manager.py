@@ -8,11 +8,10 @@ miner responses against them for integrity checking.
 from __future__ import annotations
 
 import logging
-import math
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
-from ..types import Domain, Task, TRAP_RATE
+from ..types import TRAP_RATE, Task
 
 logger = logging.getLogger("reasonforge.validator.trap_manager")
 

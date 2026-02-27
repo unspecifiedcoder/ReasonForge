@@ -6,14 +6,15 @@ Runs without a real blockchain - tests the full pipeline locally.
 """
 
 import pytest
-from reasonforge.types import Task, Domain, DimensionScores, MinerState
+
 from reasonforge.engine import ScoringEngine
 from reasonforge.protocol import ReasoningTask, create_reasoning_task, verify_submission_hash
+from reasonforge.security.sanitizer import InputSanitizer
+from reasonforge.types import DimensionScores, Domain, MinerState, Task
 from reasonforge.validator.scoring import ValidatorScorer
+from reasonforge.validator.task_manager import TaskManager
 from reasonforge.validator.trap_manager import TrapManager
 from reasonforge.validator.weight_setter import WeightSetter
-from reasonforge.validator.task_manager import TaskManager
-from reasonforge.security.sanitizer import InputSanitizer
 
 
 class TestFullEpochCycle:

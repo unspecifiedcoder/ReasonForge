@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import random
 import uuid
-from typing import List
+from typing import List, Optional, Tuple
 
-from .types import Domain, Task, TaskSource, TRAP_RATE
-
+from .types import TRAP_RATE, Domain, Task, TaskSource
 
 # ──────────────────────────────────────────────
 # Task Templates (5+ per domain)
@@ -99,7 +98,7 @@ TRAP_TEMPLATES = {
 class TaskGenerator:
     """Generates synthetic reasoning tasks with trap injection."""
 
-    def __init__(self, seed: int = None):
+    def __init__(self, seed: Optional[int] = None):
         self.rng = random.Random(seed)
 
     def generate_tasks(self, count: int = 12) -> List[Task]:
@@ -117,8 +116,8 @@ class TaskGenerator:
         # Generate trap tasks
         for _ in range(trap_count):
             domain = self.rng.choice(list(Domain))
-            templates = TRAP_TEMPLATES.get(domain, TRAP_TEMPLATES[Domain.MATHEMATICS])
-            problem, truth = self.rng.choice(templates)
+            trap_templates: List[Tuple[str, float]] = TRAP_TEMPLATES.get(domain, TRAP_TEMPLATES[Domain.MATHEMATICS])
+            problem, truth = self.rng.choice(trap_templates)
             task = Task(
                 task_id=str(uuid.uuid4()),
                 problem=problem,
@@ -135,8 +134,8 @@ class TaskGenerator:
         domains = list(Domain)
         for _ in range(regular_count):
             domain = self.rng.choice(domains)
-            templates = TASK_TEMPLATES[domain]
-            problem = self.rng.choice(templates)
+            regular_templates: List[str] = TASK_TEMPLATES[domain]
+            problem = self.rng.choice(regular_templates)
             task = Task(
                 task_id=str(uuid.uuid4()),
                 problem=problem,

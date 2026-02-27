@@ -8,9 +8,9 @@ Provides verification tools for miner submissions:
 - Factual claim verification
 """
 
-from .lean4_checker import Lean4Checker
 from .code_sandbox import CodeSandbox
-from .math_checker import MathChecker
 from .fact_checker import FactChecker
+from .lean4_checker import Lean4Checker
+from .math_checker import MathChecker
 
 __all__ = ["Lean4Checker", "CodeSandbox", "MathChecker", "FactChecker"]

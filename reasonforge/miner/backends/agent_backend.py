@@ -29,7 +29,7 @@ class AgentBackend(LLMBackend):
         self.model = model
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.max_iterations = max_iterations
-        self._agent = None
+        self._agent: Any = None
 
     def _build_agent(self):
         """Build a LangGraph reasoning agent."""

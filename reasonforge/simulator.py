@@ -7,23 +7,22 @@ and the complete epoch loop (task gen -> scoring -> rewards).
 
 from __future__ import annotations
 
-import json
 import random
 from typing import Any, Dict, List, Optional, Tuple
 
+from .engine import ScoringEngine
+from .plagiarism import PlagiarismDetector
+from .task_generator import TaskGenerator
 from .types import (
     BREAKTHROUGH_THRESHOLD,
-    DIFFICULTY_MULTIPLIER,
     DOMAIN_CHECK_WEIGHTS,
     EMISSION_MINER_SHARE,
     EMISSION_VALIDATOR_SHARE,
-    OBJECTIVE_WEIGHT,
-    CONSENSUS_WEIGHT,
     PEB_K,
     TASKS_PER_EPOCH,
     VALIDATORS_PER_TASK,
-    Domain,
     DimensionScores,
+    Domain,
     EpochResult,
     MinerState,
     MinerSubmission,
@@ -31,10 +30,6 @@ from .types import (
     Task,
     ValidatorState,
 )
-from .engine import ScoringEngine
-from .task_generator import TaskGenerator
-from .plagiarism import PlagiarismDetector
-
 
 # ──────────────────────────────────────────────
 # Miner Profiles
@@ -52,7 +47,7 @@ MINER_TIERS = {
 class MinerProfile:
     """Simulated miner with capability profile based on tier."""
 
-    def __init__(self, miner_id: str, name: str, tier: str, seed: int = None):
+    def __init__(self, miner_id: str, name: str, tier: str, seed: Optional[int] = None):
         self.miner_id = miner_id
         self.name = name
         self.tier = tier
@@ -127,7 +122,7 @@ VALIDATOR_PROFILES = {
 class ValidatorProfile:
     """Simulated validator with accuracy profile."""
 
-    def __init__(self, validator_id: str, name: str, stake: float, accuracy: str, seed: int = None):
+    def __init__(self, validator_id: str, name: str, stake: float, accuracy: str, seed: Optional[int] = None):
         self.validator_id = validator_id
         self.name = name
         self.stake = stake
@@ -173,7 +168,7 @@ DEFAULT_VALIDATORS = [
 ]
 
 
-def create_default_miners(seed: int = None) -> Tuple[List[MinerProfile], List[MinerState]]:
+def create_default_miners(seed: Optional[int] = None) -> Tuple[List[MinerProfile], List[MinerState]]:
     """Create the default roster of 12 miners."""
     profiles = []
     states = []
@@ -184,7 +179,7 @@ def create_default_miners(seed: int = None) -> Tuple[List[MinerProfile], List[Mi
     return profiles, states
 
 
-def create_default_validators(seed: int = None) -> Tuple[List[ValidatorProfile], List[ValidatorState]]:
+def create_default_validators(seed: Optional[int] = None) -> Tuple[List[ValidatorProfile], List[ValidatorState]]:
     """Create the default roster of 6 validators."""
     profiles = []
     states = []
@@ -213,7 +208,7 @@ class EpochSimulator:
         validator_states: Optional[List[ValidatorState]] = None,
         epoch_id: int = 1,
         total_emission: float = 100.0,
-        seed: int = None,
+        seed: Optional[int] = None,
     ):
         self.miner_profiles = {mp.miner_id: mp for mp in miner_profiles}
         self.validator_profiles = {vp.validator_id: vp for vp in validator_profiles}

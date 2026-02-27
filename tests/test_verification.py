@@ -6,10 +6,10 @@ Tests for Lean4 checker, code sandbox, math checker, and fact checker.
 
 import pytest
 
-from reasonforge.verification.math_checker import MathChecker
+from reasonforge.verification.code_sandbox import CodeSandbox
 from reasonforge.verification.fact_checker import FactChecker
 from reasonforge.verification.lean4_checker import Lean4Checker
-from reasonforge.verification.code_sandbox import CodeSandbox
+from reasonforge.verification.math_checker import MathChecker
 
 
 class TestMathChecker:

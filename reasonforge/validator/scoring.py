@@ -8,10 +8,9 @@ Wraps the MVP ScoringEngine and adds production verification backends.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from ..engine import ScoringEngine
-from ..types import Domain, Task, DimensionScores
+from ..types import DimensionScores, Task
 from .objective_scorer import ObjectiveScorer
 
 logger = logging.getLogger("reasonforge.validator.scoring")

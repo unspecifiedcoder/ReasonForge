@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .base import LLMBackend
 
@@ -28,8 +28,8 @@ class LocalBackend(LLMBackend):
         self.model_name = model
         self.device = device
         self.use_vllm = use_vllm
-        self._pipeline = None
-        self._vllm_model = None
+        self._pipeline: Any = None
+        self._vllm_model: Any = None
 
     def _load_model(self):
         """Lazy-load the model."""

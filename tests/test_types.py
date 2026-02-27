@@ -4,23 +4,21 @@ ReasonForge - Type and Constant Tests
 Validates data types, protocol constants, and computed properties.
 """
 
-import pytest
 from reasonforge.types import (
     DIFFICULTY_MULTIPLIER,
     TRAP_THRESHOLD,
-    VAS_REP_THRESHOLD,
     VAS_REP_MAX_MULTIPLIER,
-    VAS_SLASH_THRESHOLD,
     VAS_SLASH_GAMMA,
-    DimensionScores,
-    MinerState,
-    ValidatorState,
-    Task,
-    Domain,
-    W_QUALITY,
+    VAS_SLASH_THRESHOLD,
     W_ACCURACY,
-    W_NOVELTY,
     W_EFFICIENCY,
+    W_NOVELTY,
+    W_QUALITY,
+    DimensionScores,
+    Domain,
+    MinerState,
+    Task,
+    ValidatorState,
 )
 
 

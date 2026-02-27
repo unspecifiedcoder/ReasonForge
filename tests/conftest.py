@@ -29,7 +29,7 @@ def temp_db_path():
 @pytest.fixture
 def sample_task():
     """Create a sample task for testing."""
-    from reasonforge.types import Task, Domain, TaskSource
+    from reasonforge.types import Domain, Task, TaskSource
     return Task(
         task_id="test-task-001",
         problem="Prove that sqrt(2) is irrational.",
@@ -43,7 +43,7 @@ def sample_task():
 @pytest.fixture
 def sample_trap_task():
     """Create a sample trap task for testing."""
-    from reasonforge.types import Task, Domain, TaskSource
+    from reasonforge.types import Domain, Task, TaskSource
     return Task(
         task_id="test-trap-001",
         problem="What is 2+2?",

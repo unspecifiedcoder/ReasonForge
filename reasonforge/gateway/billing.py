@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 logger = logging.getLogger("reasonforge.gateway.billing")
 
@@ -56,7 +56,7 @@ class BillingTracker:
     def get_usage_summary(self, key_id: str) -> Dict:
         """Get usage summary for a key."""
         records = self._usage.get(key_id, [])
-        domains = {}
+        domains: Dict[str, int] = {}
         for r in records:
             domains[r.domain] = domains.get(r.domain, 0) + 1
 

@@ -7,7 +7,6 @@ Routes tasks through domain-specific prompts and parses structured output.
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field
@@ -150,7 +149,7 @@ class ReasoningEngine:
         # Update steps with any proof fragments found
         for i, step_dict in enumerate(steps_dicts):
             if i < len(steps) and step_dict.get("formal_proof_fragment"):
-                steps[i].formal_proof_fragment = step_dict["formal_proof_fragment"]
+                steps[i].formal_proof_fragment = str(step_dict["formal_proof_fragment"])
 
         elapsed_ms = int((time.time_ns() - start_time) / 1_000_000)
 
@@ -170,7 +169,7 @@ class ReasoningEngine:
 
         lines = text.strip().split("\n")
         steps = []
-        current_step = []
+        current_step: list[str] = []
         step_id = 0
 
         for line in lines:

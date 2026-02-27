@@ -6,7 +6,6 @@ API key management with usage tracking and rate limits.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import secrets
 import uuid

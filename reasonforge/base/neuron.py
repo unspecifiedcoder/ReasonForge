@@ -7,10 +7,8 @@ Handles wallet, subtensor, metagraph, registration, state persistence.
 
 from __future__ import annotations
 
-import argparse
 import logging
 import os
-import time
 from abc import ABC, abstractmethod
 from typing import Optional
 
