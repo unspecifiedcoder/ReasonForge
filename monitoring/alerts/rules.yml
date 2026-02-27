@@ -1,0 +1,74 @@
+groups:
+  - name: reasonforge_alerts
+    rules:
+      - alert: ValidatorDown
+        expr: up{job="reasonforge-validator"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Validator node is down"
+          description: "The ReasonForge validator has been unreachable for more than 2 minutes."
+
+      - alert: MinerDown
+        expr: up{job="reasonforge-miner"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Miner node is down"
+          description: "The ReasonForge miner has been unreachable for more than 2 minutes."
+
+      - alert: GatewayDown
+        expr: up{job="reasonforge-gateway"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API Gateway is down"
+          description: "The ReasonForge API gateway has been unreachable for more than 2 minutes."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "More than 5% of requests are returning 5xx errors over the last 5 minutes."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency"
+          description: "95th percentile request latency is above 10 seconds for the last 5 minutes."
+
+      - alert: LowMinerResponseRate
+        expr: rate(miner_responses_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No miner responses"
+          description: "The miner has not produced any responses in the last 10 minutes."
+
+      - alert: ValidatorScoreDropped
+        expr: delta(validator_average_score[30m]) < -0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Validator average score dropped significantly"
+          description: "The average validator score has dropped by more than 0.2 in the last 30 minutes."
+
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes > 4e9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Process memory usage exceeds 4GB."
