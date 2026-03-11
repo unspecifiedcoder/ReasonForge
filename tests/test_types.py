@@ -4,11 +4,9 @@ ReasonForge - Type and Constant Tests
 Validates data types, protocol constants, and computed properties.
 """
 
-import pytest
 from reasonforge.types import (
     DIFFICULTY_MULTIPLIER,
     TRAP_THRESHOLD,
-    VAS_REP_THRESHOLD,
     VAS_REP_MAX_MULTIPLIER,
     VAS_SLASH_THRESHOLD,
     VAS_SLASH_GAMMA,
@@ -28,9 +26,16 @@ class TestDifficultyMultiplier:
     def test_difficulty_multiplier_map(self):
         """All 10 difficulty levels mapped correctly."""
         expected = {
-            1: 1.0, 2: 1.0, 3: 1.25, 4: 1.25,
-            5: 1.5, 6: 1.5, 7: 1.75, 8: 1.75,
-            9: 2.0, 10: 2.0,
+            1: 1.0,
+            2: 1.0,
+            3: 1.25,
+            4: 1.25,
+            5: 1.5,
+            6: 1.5,
+            7: 1.75,
+            8: 1.75,
+            9: 2.0,
+            10: 2.0,
         }
         for level, mult in expected.items():
             assert DIFFICULTY_MULTIPLIER[level] == mult
@@ -49,7 +54,9 @@ class TestDimensionScores:
     def test_dimension_scores_cms(self):
         """CMS property computes Eq. 2 correctly."""
         scores = DimensionScores(quality=0.9, accuracy=0.8, novelty=0.7, efficiency=0.6)
-        expected = W_QUALITY * 0.9 + W_ACCURACY * 0.8 + W_NOVELTY * 0.7 + W_EFFICIENCY * 0.6
+        expected = (
+            W_QUALITY * 0.9 + W_ACCURACY * 0.8 + W_NOVELTY * 0.7 + W_EFFICIENCY * 0.6
+        )
         assert abs(scores.cms - expected) < 1e-10
 
     def test_dimension_scores_zeros(self):

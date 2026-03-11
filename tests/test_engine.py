@@ -6,7 +6,6 @@ Each test states which equation is being tested.
 """
 
 import math
-import pytest
 
 from reasonforge.types import DimensionScores, MinerState, ValidatorState
 from reasonforge.engine import ScoringEngine
@@ -15,6 +14,7 @@ from reasonforge.engine import ScoringEngine
 # ──────────────────────────────────────────────
 # Eq. 2 — CMS
 # ──────────────────────────────────────────────
+
 
 class TestCMS:
     def test_cms_computation(self):
@@ -39,13 +39,16 @@ class TestCMS:
 
     def test_cms_matches_property(self):
         """Eq.2: ScoringEngine.compute_cms matches DimensionScores.cms property"""
-        scores = DimensionScores(quality=0.9, accuracy=0.85, novelty=0.7, efficiency=0.6)
+        scores = DimensionScores(
+            quality=0.9, accuracy=0.85, novelty=0.7, efficiency=0.6
+        )
         assert abs(ScoringEngine.compute_cms(scores) - scores.cms) < 1e-10
 
 
 # ──────────────────────────────────────────────
 # Eq. 3 — Epoch Score
 # ──────────────────────────────────────────────
+
 
 class TestSEpoch:
     def test_s_epoch_basic(self):
@@ -56,7 +59,10 @@ class TestSEpoch:
         # avg = 2.675 / 3 = 0.89166...
         # penalty = 1.0
         expected = 2.675 / 3
-        assert abs(ScoringEngine.compute_s_epoch(cms_list, diff_mults, 1.0) - expected) < 1e-10
+        assert (
+            abs(ScoringEngine.compute_s_epoch(cms_list, diff_mults, 1.0) - expected)
+            < 1e-10
+        )
 
     def test_s_epoch_with_penalty(self):
         """Eq.3: S_epoch with trap penalty applied"""
@@ -64,7 +70,10 @@ class TestSEpoch:
         diff_mults = [1.5]
         penalty = 0.5
         expected = (0.8 * 1.5 / 1) * 0.5  # = 0.6
-        assert abs(ScoringEngine.compute_s_epoch(cms_list, diff_mults, penalty) - expected) < 1e-10
+        assert (
+            abs(ScoringEngine.compute_s_epoch(cms_list, diff_mults, penalty) - expected)
+            < 1e-10
+        )
 
     def test_s_epoch_empty(self):
         """Eq.3: Empty CMS list -> 0.0"""
@@ -74,6 +83,7 @@ class TestSEpoch:
 # ──────────────────────────────────────────────
 # Eq. 4 — PEB
 # ──────────────────────────────────────────────
+
 
 class TestPEB:
     def test_peb_rank1_streak4(self):
@@ -112,6 +122,7 @@ class TestPEB:
 # Eq. 5 — Miner Emission Distribution
 # ──────────────────────────────────────────────
 
+
 class TestMinerEmissions:
     def test_emission_conservation(self):
         """Eq.5: sum(rewards) == pool"""
@@ -149,6 +160,7 @@ class TestMinerEmissions:
 # Eq. 6 — Breakthrough
 # ──────────────────────────────────────────────
 
+
 class TestBreakthrough:
     def test_breakthrough_applied(self):
         """Eq.6: CMS=0.9 on unsolved task -> 0.9 * 2.0 = 1.8"""
@@ -175,6 +187,7 @@ class TestBreakthrough:
 # Eq. 7 — VAS
 # ──────────────────────────────────────────────
 
+
 class TestVAS:
     def test_vas_perfect(self):
         """Eq.7: all scores match consensus -> VAS = 1.0"""
@@ -200,13 +213,29 @@ class TestVAS:
 # Eq. 8 — Validator Emission Distribution
 # ──────────────────────────────────────────────
 
+
 class TestValidatorEmissions:
     def test_validator_emission_conservation(self):
         """Eq.8: sum(validator rewards) == pool"""
         validators = [
-            ValidatorState(validator_id="v1", stake=5000, current_vas=0.95, reputation_multiplier=1.4),
-            ValidatorState(validator_id="v2", stake=3000, current_vas=0.90, reputation_multiplier=1.2),
-            ValidatorState(validator_id="v3", stake=1000, current_vas=0.70, reputation_multiplier=1.0),
+            ValidatorState(
+                validator_id="v1",
+                stake=5000,
+                current_vas=0.95,
+                reputation_multiplier=1.4,
+            ),
+            ValidatorState(
+                validator_id="v2",
+                stake=3000,
+                current_vas=0.90,
+                reputation_multiplier=1.2,
+            ),
+            ValidatorState(
+                validator_id="v3",
+                stake=1000,
+                current_vas=0.70,
+                reputation_multiplier=1.0,
+            ),
         ]
         pool = 10.0
         rewards = ScoringEngine.distribute_validator_emissions(validators, pool)
@@ -215,8 +244,18 @@ class TestValidatorEmissions:
     def test_validator_higher_stake_more_reward(self):
         """Eq.8: higher stake*VAS*rep -> more reward"""
         validators = [
-            ValidatorState(validator_id="v1", stake=5000, current_vas=0.95, reputation_multiplier=1.0),
-            ValidatorState(validator_id="v2", stake=1000, current_vas=0.95, reputation_multiplier=1.0),
+            ValidatorState(
+                validator_id="v1",
+                stake=5000,
+                current_vas=0.95,
+                reputation_multiplier=1.0,
+            ),
+            ValidatorState(
+                validator_id="v2",
+                stake=1000,
+                current_vas=0.95,
+                reputation_multiplier=1.0,
+            ),
         ]
         rewards = ScoringEngine.distribute_validator_emissions(validators, 10.0)
         assert rewards[0] > rewards[1]
@@ -225,6 +264,7 @@ class TestValidatorEmissions:
 # ──────────────────────────────────────────────
 # Eq. 9 — Trap Penalty
 # ──────────────────────────────────────────────
+
 
 class TestTrapPenalty:
     def test_trap_above_threshold(self):
@@ -250,6 +290,7 @@ class TestTrapPenalty:
 # Eq. 10 — Slash
 # ──────────────────────────────────────────────
 
+
 class TestSlash:
     def test_slash_below_threshold(self):
         """Eq.10: VAS_avg=0.40 -> slash = gamma * stake * (0.60-0.40)^2"""
@@ -272,6 +313,7 @@ class TestSlash:
 # Eq. 11 — Objective Score
 # ──────────────────────────────────────────────
 
+
 class TestObjectiveScore:
     def test_objective_score(self):
         """Eq.11: weighted sum of checks"""
@@ -279,19 +321,26 @@ class TestObjectiveScore:
         weights = {"proof": 0.60, "steps": 0.25, "numerical": 0.15}
         expected = 0.60 * 0.9 + 0.25 * 0.8 + 0.15 * 0.7
         # = 0.54 + 0.20 + 0.105 = 0.845
-        assert abs(ScoringEngine.compute_objective_score(checks, weights) - expected) < 1e-10
+        assert (
+            abs(ScoringEngine.compute_objective_score(checks, weights) - expected)
+            < 1e-10
+        )
 
     def test_objective_missing_check(self):
         """Eq.11: missing check defaults to 0"""
         checks = {"proof": 0.9}
         weights = {"proof": 0.60, "steps": 0.25, "numerical": 0.15}
         expected = 0.60 * 0.9 + 0.25 * 0.0 + 0.15 * 0.0
-        assert abs(ScoringEngine.compute_objective_score(checks, weights) - expected) < 1e-10
+        assert (
+            abs(ScoringEngine.compute_objective_score(checks, weights) - expected)
+            < 1e-10
+        )
 
 
 # ──────────────────────────────────────────────
 # Eq. 12 — Consensus Score
 # ──────────────────────────────────────────────
+
 
 class TestConsensusScore:
     def test_consensus_trimmed_median(self):
@@ -313,7 +362,11 @@ class TestConsensusScore:
         # result = (0.7*2000/9000 + 0.8*3000/9000 + 0.85*2000/9000) / (7000/9000)
         # = (1400 + 2400 + 1700) / 7000 = 5500/7000 = 0.78571...
         total_stake = 9000
-        numerator = 0.7 * (2000 / total_stake) + 0.8 * (3000 / total_stake) + 0.85 * (2000 / total_stake)
+        numerator = (
+            0.7 * (2000 / total_stake)
+            + 0.8 * (3000 / total_stake)
+            + 0.85 * (2000 / total_stake)
+        )
         denom = (2000 + 3000 + 2000) / total_stake
         expected = numerator / denom
         assert abs(result - expected) < 1e-6
@@ -337,6 +390,7 @@ class TestConsensusScore:
 # ──────────────────────────────────────────────
 # Eq. 13 — Final Score
 # ──────────────────────────────────────────────
+
 
 class TestFinalScore:
     def test_final_score(self):

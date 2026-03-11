@@ -8,8 +8,6 @@ import pytest
 from reasonforge.types import EMISSION_MINER_SHARE, EMISSION_VALIDATOR_SHARE
 from reasonforge.simulator import (
     EpochSimulator,
-    MinerProfile,
-    ValidatorProfile,
     create_default_miners,
     create_default_validators,
 )
@@ -54,8 +52,12 @@ class TestEpochSimulation:
         sim = EpochSimulator(mp, vp, ms, vs, epoch_id=1, total_emission=100.0, seed=42)
         result = sim.run_epoch()
 
-        elite_tao = [m["epoch_tao"] for m in result.miner_results if "DeepReason" in m["name"]]
-        adversarial_tao = [m["epoch_tao"] for m in result.miner_results if "SpamBot" in m["name"]]
+        elite_tao = [
+            m["epoch_tao"] for m in result.miner_results if "DeepReason" in m["name"]
+        ]
+        adversarial_tao = [
+            m["epoch_tao"] for m in result.miner_results if "SpamBot" in m["name"]
+        ]
 
         assert len(elite_tao) > 0
         assert len(adversarial_tao) > 0
@@ -75,7 +77,9 @@ class TestEpochSimulation:
         mp, vp, ms, vs = default_setup
 
         for epoch in range(1, 4):
-            sim = EpochSimulator(mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch)
+            sim = EpochSimulator(
+                mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch
+            )
             sim.run_epoch()
 
         # At least one miner should have a streak > 1
@@ -88,8 +92,12 @@ class TestEpochSimulation:
         sim = EpochSimulator(mp, vp, ms, vs, epoch_id=1, total_emission=100.0, seed=42)
         result = sim.run_epoch()
 
-        honest_vas = [v["vas"] for v in result.validator_results if v["name"] == "TruthGuard"]
-        lazy_vas = [v["vas"] for v in result.validator_results if v["name"] == "LazyNode"]
+        honest_vas = [
+            v["vas"] for v in result.validator_results if v["name"] == "TruthGuard"
+        ]
+        lazy_vas = [
+            v["vas"] for v in result.validator_results if v["name"] == "LazyNode"
+        ]
 
         if honest_vas and lazy_vas:
             # Honest should generally have higher VAS but due to randomness
@@ -103,7 +111,9 @@ class TestEpochSimulation:
 
         # Run multiple epochs so VAS history accumulates
         for epoch in range(1, 8):
-            sim = EpochSimulator(mp, vp2, ms, vs2, epoch_id=epoch, total_emission=100.0, seed=42 + epoch)
+            sim = EpochSimulator(
+                mp, vp2, ms, vs2, epoch_id=epoch, total_emission=100.0, seed=42 + epoch
+            )
             sim.run_epoch()
 
         # Check if BadActor got slashed at some point
@@ -117,8 +127,10 @@ class TestEpochSimulation:
         mp, vp, ms, vs = default_setup
 
         for epoch in range(1, 4):
-            sim = EpochSimulator(mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch)
-            result = sim.run_epoch()
+            sim = EpochSimulator(
+                mp, vp, ms, vs, epoch_id=epoch, total_emission=100.0, seed=42 + epoch
+            )
+            sim.run_epoch()
 
         # After 3 epochs, total_tao should be > epoch_tao for top miners
         for m in ms:
