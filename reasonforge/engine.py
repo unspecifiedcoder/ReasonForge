@@ -23,11 +23,16 @@ from .types import (
     VAS_SLASH_GAMMA,
     VAS_SLASH_THRESHOLD,
     W_ACCURACY,
+    W_COMPILATION,
+    W_COMPLETENESS,
+    W_CORRECTNESS,
+    W_CTS_EFFICIENCY,
     W_EFFICIENCY,
     W_NOVELTY,
     W_QUALITY,
     DimensionScores,
     MinerState,
+    TranslationScores,
     ValidatorState,
 )
 
@@ -49,6 +54,22 @@ class ScoringEngine:
             + W_ACCURACY * scores.accuracy
             + W_NOVELTY * scores.novelty
             + W_EFFICIENCY * scores.efficiency
+        )
+
+    @staticmethod
+    def compute_cts(scores: TranslationScores) -> float:
+        """
+        Proof Layer — Composite Translation Score (CTS)
+        CTS(m,t) = 0.45*Compilation + 0.30*Correctness + 0.15*Completeness + 0.10*Eff
+
+        Replaces CMS for translator-miners in the proof layer.
+        Weights sum to 1.0.
+        """
+        return (
+            W_COMPILATION * scores.compilation
+            + W_CORRECTNESS * scores.correctness
+            + W_COMPLETENESS * scores.completeness
+            + W_CTS_EFFICIENCY * scores.efficiency
         )
 
     @staticmethod
@@ -109,9 +130,7 @@ class ScoringEngine:
         return cms
 
     @staticmethod
-    def compute_vas(
-        v_scores: List[float], consensus_scores: List[float]
-    ) -> float:
+    def compute_vas(v_scores: List[float], consensus_scores: List[float]) -> float:
         """
         Eq. 7 — Validator Accuracy Score (VAS)
         VAS(v) = 1 - (1/|T_v|) * sum|score_v(m,t) - score_consensus(m,t)|
