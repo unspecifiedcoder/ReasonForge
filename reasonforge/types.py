@@ -62,9 +62,16 @@ EPOCH_HOURS = 24
 
 # Difficulty Multiplier Map (difficulty 1-10 -> D(t))
 DIFFICULTY_MULTIPLIER: Dict[int, float] = {
-    1: 1.0, 2: 1.0, 3: 1.25, 4: 1.25,
-    5: 1.5, 6: 1.5, 7: 1.75, 8: 1.75,
-    9: 2.0, 10: 2.0,
+    1: 1.0,
+    2: 1.0,
+    3: 1.25,
+    4: 1.25,
+    5: 1.5,
+    6: 1.5,
+    7: 1.75,
+    8: 1.75,
+    9: 2.0,
+    10: 2.0,
 }
 
 # Objective/Consensus Split (Eq. 13)
@@ -77,13 +84,13 @@ CONSENSUS_TRIM_DELTA = 0.10  # Trim top/bottom 10%
 # Enums
 # ──────────────────────────────────────────────
 
+
 class Domain(str, Enum):
+    """Proof Layer: only mechanically verifiable domains."""
+
     MATHEMATICS = "mathematics"
     CODE = "code"
-    SCIENTIFIC = "scientific"
-    STRATEGIC = "strategic"
-    CAUSAL = "causal"
-    ETHICAL = "ethical"
+    LOGIC = "logic"
 
 
 class TaskSource(str, Enum):
@@ -94,13 +101,11 @@ class TaskSource(str, Enum):
 
 
 # Domain-Specific Check Weights (Eq. 11)
+# Proof Layer: only 3 mechanically verifiable domains
 DOMAIN_CHECK_WEIGHTS: Dict[Domain, Dict[str, float]] = {
     Domain.MATHEMATICS: {"proof": 0.60, "steps": 0.25, "numerical": 0.15},
     Domain.CODE: {"tests": 0.50, "static_analysis": 0.20, "formal": 0.30},
-    Domain.SCIENTIFIC: {"simulation": 0.40, "statistics": 0.35, "citations": 0.25},
-    Domain.STRATEGIC: {"solver": 0.50, "constraints": 0.30, "equilibrium": 0.20},
-    Domain.CAUSAL: {"docalculus": 0.40, "bootstrap": 0.35, "dag": 0.25},
-    Domain.ETHICAL: {"coverage": 0.30, "logic": 0.70},
+    Domain.LOGIC: {"smt_validity": 0.50, "completeness": 0.30, "soundness": 0.20},
 }
 
 
@@ -108,9 +113,11 @@ DOMAIN_CHECK_WEIGHTS: Dict[Domain, Dict[str, float]] = {
 # Dataclasses
 # ──────────────────────────────────────────────
 
+
 @dataclass
 class Task:
     """A reasoning task assigned to miners."""
+
     task_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     problem: str = ""
     domain: Domain = Domain.MATHEMATICS
@@ -129,6 +136,7 @@ class Task:
 @dataclass
 class ReasoningStep:
     """A single step in a miner's reasoning chain."""
+
     step_id: int = 0
     reasoning: str = ""
     evidence: str = ""
@@ -139,6 +147,7 @@ class ReasoningStep:
 @dataclass
 class MinerSubmission:
     """A miner's submission for a task."""
+
     task_id: str = ""
     miner_id: str = ""
     steps: List[ReasoningStep] = field(default_factory=list)
@@ -160,6 +169,7 @@ class MinerSubmission:
 @dataclass
 class DimensionScores:
     """Scores across the four quality dimensions."""
+
     quality: float = 0.0
     accuracy: float = 0.0
     novelty: float = 0.0
@@ -179,6 +189,7 @@ class DimensionScores:
 @dataclass
 class ValidatorScore:
     """A validator's score for a specific miner's submission."""
+
     validator_id: str = ""
     objective_score: float = 0.0
     consensus_score: float = 0.0
@@ -189,6 +200,7 @@ class ValidatorScore:
 @dataclass
 class MinerState:
     """Persistent miner state across epochs."""
+
     miner_id: str = ""
     name: str = ""
     epoch_scores: List[float] = field(default_factory=list)
@@ -223,6 +235,7 @@ class MinerState:
 @dataclass
 class ValidatorState:
     """Persistent validator state across epochs."""
+
     validator_id: str = ""
     name: str = ""
     stake: float = 0.0
@@ -273,6 +286,7 @@ class ValidatorState:
 @dataclass
 class EpochResult:
     """Results from a single epoch simulation."""
+
     epoch_id: int = 0
     total_emission: float = 0.0
     miner_pool: float = 0.0
@@ -284,3 +298,54 @@ class EpochResult:
     breakthroughs: int = 0
     avg_cms: float = 0.0
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+
+
+# ──────────────────────────────────────────────
+# Proof Layer — CTS Weights (replaces CMS for proof layer)
+# ──────────────────────────────────────────────
+
+W_COMPILATION = 0.45  # Did the translation compile/execute?
+W_CORRECTNESS = 0.30  # Did verification pass? (binary per step)
+W_COMPLETENESS = 0.15  # What fraction of steps were translated?
+W_CTS_EFFICIENCY = 0.10  # Translation time relative to timeout
+
+
+@dataclass
+class TranslationScores:
+    """Scores across the four CTS (Composite Translation Score) dimensions.
+
+    Used by the Proof Layer to replace CMS for translator-miners.
+    CTS = W_COMPILATION * compilation + W_CORRECTNESS * correctness
+        + W_COMPLETENESS * completeness + W_CTS_EFFICIENCY * efficiency
+    """
+
+    compilation: float = 0.0  # Did the translation compile/execute? [0, 1]
+    correctness: float = 0.0  # Did verification pass? (binary per step) [0, 1]
+    completeness: float = 0.0  # Fraction of steps translated [0, 1]
+    efficiency: float = 0.0  # Translation time relative to timeout [0, 1]
+
+    @property
+    def cts(self) -> float:
+        """Compute Composite Translation Score."""
+        return (
+            W_COMPILATION * self.compilation
+            + W_CORRECTNESS * self.correctness
+            + W_COMPLETENESS * self.completeness
+            + W_CTS_EFFICIENCY * self.efficiency
+        )
+
+
+class ProofLevel(str, Enum):
+    """Verification proof level tiers."""
+
+    FORMAL = "formal"  # Full Lean4/Coq proof. Strongest guarantee.
+    STANDARD = "standard"  # Executable tests + property checks.
+    QUICK = "quick"  # Type checking + basic assertions.
+
+
+class VerificationDomain(str, Enum):
+    """Alias for the 3 proof-layer domains (same as Domain)."""
+
+    MATHEMATICS = "mathematics"
+    CODE = "code"
+    LOGIC = "logic"

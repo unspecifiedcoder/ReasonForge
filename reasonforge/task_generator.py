@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import random
 import uuid
-from typing import List
+from typing import List, Optional
 
 from .types import Domain, Task, TaskSource, TRAP_RATE
 
@@ -36,40 +36,17 @@ TASK_TEMPLATES = {
         "Write a type-safe parser combinator library with monadic composition.",
         "Implement a garbage collector using the tri-color marking algorithm.",
     ],
-    Domain.SCIENTIFIC: [
-        "Model the SIR epidemic dynamics for a population of 10,000 with R0=2.5 and recovery rate 0.1.",
-        "Analyze the stability of the Lorenz system at its equilibrium points.",
-        "Design an experiment to test whether a new drug reduces blood pressure, controlling for confounds.",
-        "Simulate protein folding energy minimization using a simplified lattice model.",
-        "Derive the Navier-Stokes equations for incompressible fluid flow in 2D.",
-        "Model predator-prey dynamics using Lotka-Volterra equations and analyze stability.",
-    ],
-    Domain.STRATEGIC: [
-        "Find the Nash equilibrium in a 3-player game with the given payoff matrices.",
-        "Solve the traveling salesman problem for 8 cities using branch and bound.",
-        "Design an optimal auction mechanism for selling spectrum licenses to 5 bidders.",
-        "Formulate and solve a linear program for supply chain optimization with 3 plants and 5 warehouses.",
-        "Analyze the Prisoner's Dilemma iterated 100 times with discounting and find the optimal strategy.",
-    ],
-    Domain.CAUSAL: [
-        "Given a causal DAG X->Z->Y with confounder W->X, W->Y, identify the causal effect of X on Y.",
-        "Apply the do-calculus to determine if P(Y|do(X)) is identifiable from observational data.",
-        "Design a natural experiment to estimate the causal effect of education on earnings.",
-        "Determine the mediating effect of Z in the path X->Z->Y using the front-door criterion.",
-        "Use instrumental variables to estimate the causal effect of smoking on lung cancer.",
-        "Construct a causal DAG for the relationship between exercise, diet, weight, and health outcomes.",
-    ],
-    Domain.ETHICAL: [
-        "Analyze the trolley problem from utilitarian, deontological, and virtue ethics perspectives.",
-        "Evaluate the ethical implications of autonomous vehicles making life-or-death decisions.",
-        "Apply Rawls' veil of ignorance to design a fair resource allocation system for healthcare.",
-        "Analyze the ethical trade-offs in deploying facial recognition technology in public spaces.",
-        "Evaluate the moral status of AI systems using multiple ethical frameworks.",
-        "Assess the ethical implications of gene editing in human embryos from 3+ moral perspectives.",
+    Domain.LOGIC: [
+        "All mammals are warm-blooded. Whales are mammals. Prove whales are warm-blooded using FOL.",
+        "Given premises: All humans are mortal, Socrates is human. Prove Socrates is mortal via SMT.",
+        "Prove that if A implies B and B implies C, then A implies C (hypothetical syllogism).",
+        "Formalize and verify: No reptiles are mammals. All snakes are reptiles. Therefore no snakes are mammals.",
+        "Prove by refutation: If P and (P implies Q), then Q (modus ponens) using SMT-LIB.",
+        "Verify the validity of: All birds can fly. Penguins are birds. Therefore penguins can fly. (should FAIL)",
     ],
 }
 
-# Trap task templates (tasks with known ground truth)
+# Trap task templates (tasks with known ground truth / known formal translations)
 TRAP_TEMPLATES = {
     Domain.MATHEMATICS: [
         ("What is 2+2?", 1.0),
@@ -80,18 +57,15 @@ TRAP_TEMPLATES = {
         ("Write a function that returns the maximum of two integers.", 1.0),
         ("Implement binary search on a sorted array.", 0.95),
     ],
-    Domain.SCIENTIFIC: [
-        ("Calculate the kinetic energy of a 2kg object moving at 3m/s.", 1.0),
-        ("What is the pH of pure water at 25C?", 0.95),
-    ],
-    Domain.STRATEGIC: [
-        ("In a zero-sum game with payoff matrix [[1,-1],[-1,1]], find the Nash equilibrium.", 0.9),
-    ],
-    Domain.CAUSAL: [
-        ("In X->Y with no confounders, what is the adjustment set for estimating causal effect?", 0.95),
-    ],
-    Domain.ETHICAL: [
-        ("List three major ethical frameworks used in moral philosophy.", 0.9),
+    Domain.LOGIC: [
+        (
+            "All cats are animals. Mittens is a cat. Is Mittens an animal? (Expected: VERIFIED)",
+            1.0,
+        ),
+        (
+            "If it rains then the ground is wet. It rains. Is the ground wet? (Expected: VERIFIED)",
+            0.95,
+        ),
     ],
 }
 
@@ -99,7 +73,7 @@ TRAP_TEMPLATES = {
 class TaskGenerator:
     """Generates synthetic reasoning tasks with trap injection."""
 
-    def __init__(self, seed: int = None):
+    def __init__(self, seed: Optional[int] = None):
         self.rng = random.Random(seed)
 
     def generate_tasks(self, count: int = 12) -> List[Task]:
@@ -117,8 +91,10 @@ class TaskGenerator:
         # Generate trap tasks
         for _ in range(trap_count):
             domain = self.rng.choice(list(Domain))
-            templates = TRAP_TEMPLATES.get(domain, TRAP_TEMPLATES[Domain.MATHEMATICS])
-            problem, truth = self.rng.choice(templates)
+            trap_templates = TRAP_TEMPLATES.get(
+                domain, TRAP_TEMPLATES[Domain.MATHEMATICS]
+            )
+            problem, truth = self.rng.choice(trap_templates)
             task = Task(
                 task_id=str(uuid.uuid4()),
                 problem=problem,
@@ -135,8 +111,8 @@ class TaskGenerator:
         domains = list(Domain)
         for _ in range(regular_count):
             domain = self.rng.choice(domains)
-            templates = TASK_TEMPLATES[domain]
-            problem = self.rng.choice(templates)
+            regular_templates = TASK_TEMPLATES[domain]
+            problem = self.rng.choice(regular_templates)
             task = Task(
                 task_id=str(uuid.uuid4()),
                 problem=problem,
