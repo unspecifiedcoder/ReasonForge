@@ -1,0 +1,69 @@
+{
+  "name": "reasonforge-verify",
+  "displayName": "ReasonForge Code Verify",
+  "description": "Verify AI-generated code with formal analysis, security scanning, and automated testing",
+  "version": "0.1.0",
+  "publisher": "reasonforge",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ReasonForge/ReasonForge"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Testing",
+    "Linters"
+  ],
+  "activationEvents": [
+    "onCommand:reasonforge.verifyFile",
+    "onCommand:reasonforge.verifySelection"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "reasonforge.verifyFile",
+        "title": "ReasonForge: Verify Current File"
+      },
+      {
+        "command": "reasonforge.verifySelection",
+        "title": "ReasonForge: Verify Selection"
+      }
+    ],
+    "configuration": {
+      "title": "ReasonForge",
+      "properties": {
+        "reasonforge.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:8000",
+          "description": "URL of the ReasonForge verification server"
+        },
+        "reasonforge.timeout": {
+          "type": "number",
+          "default": 30,
+          "description": "Request timeout in seconds for verification calls"
+        },
+        "reasonforge.showSecurityWarnings": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show security warnings as VS Code diagnostics"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc --noEmit",
+    "test": "node ./out/test/runTest.js",
+    "build": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "esbuild": "^0.19.0"
+  }
+}
