@@ -8,9 +8,9 @@ and hash-based comparison. In production, this would use embedding cosine simila
 from __future__ import annotations
 
 from collections import deque
-from typing import Deque, Dict, List, Set, Tuple
+from typing import Deque, List, Optional, Set, Tuple
 
-from .types import MinerSubmission, SIMILARITY_THRESHOLD, SIMILARITY_PENALTY
+from .types import SIMILARITY_PENALTY, SIMILARITY_THRESHOLD, MinerSubmission
 
 
 class PlagiarismDetector:
@@ -51,7 +51,11 @@ class PlagiarismDetector:
             return 0.0
         return intersection / union
 
-    def check(self, submission: MinerSubmission, current_submissions: List[MinerSubmission] = None) -> float:
+    def check(
+        self,
+        submission: MinerSubmission,
+        current_submissions: Optional[List[MinerSubmission]] = None,
+    ) -> float:
         """
         Check a submission for plagiarism against history and current epoch.
 

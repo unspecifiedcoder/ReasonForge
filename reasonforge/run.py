@@ -9,17 +9,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import random
-import sys
-from typing import List
+from typing import List, Optional
 
-from .types import EMISSION_MINER_SHARE, EMISSION_VALIDATOR_SHARE, PEB_K, TASKS_PER_EPOCH, TRAP_RATE
 from .simulator import (
     EpochSimulator,
     create_default_miners,
     create_default_validators,
 )
-
+from .types import EMISSION_MINER_SHARE, EMISSION_VALIDATOR_SHARE, PEB_K, TASKS_PER_EPOCH, TRAP_RATE
 
 BANNER = r"""
   ____                            _____
@@ -32,7 +29,9 @@ BANNER = r"""
 """
 
 
-def format_table(headers: List[str], rows: List[List[str]], col_widths: List[int] = None) -> str:
+def format_table(
+    headers: List[str], rows: List[List[str]], col_widths: Optional[List[int]] = None
+) -> str:
     """Format a simple ASCII table."""
     if not col_widths:
         col_widths = []
@@ -60,7 +59,13 @@ def format_table(headers: List[str], rows: List[List[str]], col_widths: List[int
     return "\n".join(lines)
 
 
-def run_simulation(epochs: int, emission: float, output: str = None, seed: int = None, verbose: bool = False):
+def run_simulation(
+    epochs: int,
+    emission: float,
+    output: Optional[str] = None,
+    seed: Optional[int] = None,
+    verbose: bool = False,
+):
     """Run the full multi-epoch simulation."""
 
     print(BANNER)
@@ -69,10 +74,14 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
     print("=" * 70)
     print(f"  Epochs:          {epochs}")
     print(f"  Emission/epoch:  {emission} TAO")
-    print(f"  Miner pool:      {emission * EMISSION_MINER_SHARE} TAO ({EMISSION_MINER_SHARE*100:.0f}%)")
-    print(f"  Validator pool:  {emission * EMISSION_VALIDATOR_SHARE} TAO ({EMISSION_VALIDATOR_SHARE*100:.0f}%)")
+    print(
+        f"  Miner pool:      {emission * EMISSION_MINER_SHARE} TAO ({EMISSION_MINER_SHARE * 100:.0f}%)"
+    )
+    print(
+        f"  Validator pool:  {emission * EMISSION_VALIDATOR_SHARE} TAO ({EMISSION_VALIDATOR_SHARE * 100:.0f}%)"
+    )
     print(f"  Tasks/epoch:     {TASKS_PER_EPOCH}")
-    print(f"  Trap rate:       {TRAP_RATE*100:.0f}%")
+    print(f"  Trap rate:       {TRAP_RATE * 100:.0f}%")
     print(f"  Top-K PEB:       {PEB_K}")
     print(f"  Seed:            {seed if seed is not None else 'random'}")
     print("=" * 70)
@@ -101,11 +110,13 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
         all_epoch_results.append(EpochSimulator.to_json(result))
 
         # Print epoch header
-        print(f"\n{'='*70}")
+        print(f"\n{'=' * 70}")
         print(f"  EPOCH {epoch}/{epochs}")
-        print(f"{'='*70}")
-        print(f"  Tasks: {result.tasks_processed} | Traps: {result.traps_injected} | "
-              f"Breakthroughs: {result.breakthroughs} | Avg CMS: {result.avg_cms:.4f}")
+        print(f"{'=' * 70}")
+        print(
+            f"  Tasks: {result.tasks_processed} | Traps: {result.traps_injected} | "
+            f"Breakthroughs: {result.breakthroughs} | Avg CMS: {result.avg_cms:.4f}"
+        )
         print()
 
         # Miner leaderboard
@@ -121,16 +132,18 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
             if m["breakthroughs"] > 0:
                 status += " B"  # breakthrough
 
-            miner_rows.append([
-                str(m["rank"]),
-                m["name"],
-                f"{m['s_epoch']:.4f}",
-                f"{m['peb']:.4f}",
-                str(m["streak"]),
-                f"{m['epoch_tao']:.2f}",
-                f"{m['total_tao']:.2f}",
-                status.strip(),
-            ])
+            miner_rows.append(
+                [
+                    str(m["rank"]),
+                    m["name"],
+                    f"{m['s_epoch']:.4f}",
+                    f"{m['peb']:.4f}",
+                    str(m["streak"]),
+                    f"{m['epoch_tao']:.2f}",
+                    f"{m['total_tao']:.2f}",
+                    status.strip(),
+                ]
+            )
 
         print("  MINER LEADERBOARD")
         print("  " + "-" * 66)
@@ -152,15 +165,17 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
             else:
                 health = "[BAD]"
 
-            val_rows.append([
-                v["name"],
-                str(int(v["stake"])),
-                f"{v['vas']:.4f}",
-                f"{v['reputation']:.3f}",
-                f"{v['epoch_tao']:.2f}",
-                f"{v['slashed']:.4f}",
-                health,
-            ])
+            val_rows.append(
+                [
+                    v["name"],
+                    str(int(v["stake"])),
+                    f"{v['vas']:.4f}",
+                    f"{v['reputation']:.3f}",
+                    f"{v['epoch_tao']:.2f}",
+                    f"{v['slashed']:.4f}",
+                    health,
+                ]
+            )
 
         print("  VALIDATOR SUMMARY")
         print("  " + "-" * 66)
@@ -169,14 +184,14 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
             print(f"  {line}")
 
         if verbose:
-            print(f"\n  [Verbose] Per-task CMS values:")
+            print("\n  [Verbose] Per-task CMS values:")
             for m in result.miner_results:
                 print(f"    {m['name']}: S_epoch={m['s_epoch']:.4f}")
 
     # Final standings
-    print(f"\n\n{'='*70}")
+    print(f"\n\n{'=' * 70}")
     print("  FINAL STANDINGS AFTER ALL EPOCHS")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     # Get final miner standings
     final_miners = sorted(
@@ -187,8 +202,10 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
     print("\n  TOP MINERS (by Total TAO):")
     for i, m in enumerate(final_miners[:5], 1):
         star = " *" if i <= 3 else ""
-        print(f"    {i}. {m['name']:20s} Total: {m['total_tao']:8.2f} TAO  "
-              f"Streak: {m['streak']:2d}  PEB: {m['peb']:.4f}{star}")
+        print(
+            f"    {i}. {m['name']:20s} Total: {m['total_tao']:8.2f} TAO  "
+            f"Streak: {m['streak']:2d}  PEB: {m['peb']:.4f}{star}"
+        )
 
     # Final validator standings
     print("\n  VALIDATORS:")
@@ -200,11 +217,13 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
             indicator = "[WARN]"
         else:
             indicator = "[BAD]"
-        print(f"    {v['name']:12s} Stake: {int(v['stake']):5d}  VAS: {v['vas']:.4f}  "
-              f"Total: {v['total_tao']:.2f} TAO  Slashed: {v['slashed']:.4f}  {indicator}")
+        print(
+            f"    {v['name']:12s} Stake: {int(v['stake']):5d}  VAS: {v['vas']:.4f}  "
+            f"Total: {v['total_tao']:.2f} TAO  Slashed: {v['slashed']:.4f}  {indicator}"
+        )
 
     # Key observations
-    print(f"\n  KEY OBSERVATIONS:")
+    print("\n  KEY OBSERVATIONS:")
     # Find adversarial miners
     bottom = final_miners[-2:]
     for m in bottom:
@@ -222,7 +241,7 @@ def run_simulation(epochs: int, emission: float, output: str = None, seed: int =
         names = ", ".join(m["name"] for m in streak_leaders)
         print(f"    * Maintained full streak: {names}")
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
 
     # Save output
     if output:
@@ -249,7 +268,9 @@ def main():
         description="ReasonForge - Decentralized Verifiable Reasoning Simulator"
     )
     parser.add_argument("--epochs", type=int, default=5, help="Number of epochs (default: 5)")
-    parser.add_argument("--emission", type=float, default=100.0, help="TAO per epoch (default: 100.0)")
+    parser.add_argument(
+        "--emission", type=float, default=100.0, help="TAO per epoch (default: 100.0)"
+    )
     parser.add_argument("--output", type=str, default=None, help="Save JSON results to file")
     parser.add_argument("--seed", type=int, default=None, help="Random seed for reproducibility")
     parser.add_argument("--verbose", action="store_true", help="Show per-task details")

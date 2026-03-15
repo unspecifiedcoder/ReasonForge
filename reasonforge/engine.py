@@ -82,9 +82,7 @@ class ScoringEngine:
         return PEB_ALPHA * (1.0 / rank) * math.sqrt(capped_streak)
 
     @staticmethod
-    def distribute_miner_emissions(
-        miners: List[MinerState], pool: float
-    ) -> List[float]:
+    def distribute_miner_emissions(miners: List[MinerState], pool: float) -> List[float]:
         """
         Eq. 5 — Final Miner Reward
         R(m) = E_miner * [S_epoch(m) * (1 + PEB(m))] / sum_j[S_epoch(j) * (1 + PEB(j))]
@@ -109,9 +107,7 @@ class ScoringEngine:
         return cms
 
     @staticmethod
-    def compute_vas(
-        v_scores: List[float], consensus_scores: List[float]
-    ) -> float:
+    def compute_vas(v_scores: List[float], consensus_scores: List[float]) -> float:
         """
         Eq. 7 — Validator Accuracy Score (VAS)
         VAS(v) = 1 - (1/|T_v|) * sum|score_v(m,t) - score_consensus(m,t)|
@@ -131,9 +127,7 @@ class ScoringEngine:
         R_v(v) = E_validator * [VAS(v) * stake(v) * rep_mult(v)] /
                  sum_k[VAS(k) * stake(k) * rep_mult(k)]
         """
-        weighted = [
-            v.current_vas * v.stake * v.reputation_multiplier for v in validators
-        ]
+        weighted = [v.current_vas * v.stake * v.reputation_multiplier for v in validators]
         total_weight = sum(weighted)
         if total_weight <= 0:
             n = len(validators)
@@ -165,9 +159,7 @@ class ScoringEngine:
         return VAS_SLASH_GAMMA * stake * (VAS_SLASH_THRESHOLD - vas_7d_avg) ** 2
 
     @staticmethod
-    def compute_objective_score(
-        checks: Dict[str, float], weights: Dict[str, float]
-    ) -> float:
+    def compute_objective_score(checks: Dict[str, float], weights: Dict[str, float]) -> float:
         """
         Eq. 11 — Objective Score
         O_score(m,t) = sum_k(omega_k * check_k)

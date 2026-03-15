@@ -14,7 +14,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional
 
-
 # ──────────────────────────────────────────────
 # Protocol Constants
 # ──────────────────────────────────────────────
@@ -62,9 +61,16 @@ EPOCH_HOURS = 24
 
 # Difficulty Multiplier Map (difficulty 1-10 -> D(t))
 DIFFICULTY_MULTIPLIER: Dict[int, float] = {
-    1: 1.0, 2: 1.0, 3: 1.25, 4: 1.25,
-    5: 1.5, 6: 1.5, 7: 1.75, 8: 1.75,
-    9: 2.0, 10: 2.0,
+    1: 1.0,
+    2: 1.0,
+    3: 1.25,
+    4: 1.25,
+    5: 1.5,
+    6: 1.5,
+    7: 1.75,
+    8: 1.75,
+    9: 2.0,
+    10: 2.0,
 }
 
 # Objective/Consensus Split (Eq. 13)
@@ -76,6 +82,7 @@ CONSENSUS_TRIM_DELTA = 0.10  # Trim top/bottom 10%
 # ──────────────────────────────────────────────
 # Enums
 # ──────────────────────────────────────────────
+
 
 class Domain(str, Enum):
     MATHEMATICS = "mathematics"
@@ -108,9 +115,11 @@ DOMAIN_CHECK_WEIGHTS: Dict[Domain, Dict[str, float]] = {
 # Dataclasses
 # ──────────────────────────────────────────────
 
+
 @dataclass
 class Task:
     """A reasoning task assigned to miners."""
+
     task_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     problem: str = ""
     domain: Domain = Domain.MATHEMATICS
@@ -129,6 +138,7 @@ class Task:
 @dataclass
 class ReasoningStep:
     """A single step in a miner's reasoning chain."""
+
     step_id: int = 0
     reasoning: str = ""
     evidence: str = ""
@@ -139,6 +149,7 @@ class ReasoningStep:
 @dataclass
 class MinerSubmission:
     """A miner's submission for a task."""
+
     task_id: str = ""
     miner_id: str = ""
     steps: List[ReasoningStep] = field(default_factory=list)
@@ -160,6 +171,7 @@ class MinerSubmission:
 @dataclass
 class DimensionScores:
     """Scores across the four quality dimensions."""
+
     quality: float = 0.0
     accuracy: float = 0.0
     novelty: float = 0.0
@@ -179,6 +191,7 @@ class DimensionScores:
 @dataclass
 class ValidatorScore:
     """A validator's score for a specific miner's submission."""
+
     validator_id: str = ""
     objective_score: float = 0.0
     consensus_score: float = 0.0
@@ -189,6 +202,7 @@ class ValidatorScore:
 @dataclass
 class MinerState:
     """Persistent miner state across epochs."""
+
     miner_id: str = ""
     name: str = ""
     epoch_scores: List[float] = field(default_factory=list)
@@ -223,6 +237,7 @@ class MinerState:
 @dataclass
 class ValidatorState:
     """Persistent validator state across epochs."""
+
     validator_id: str = ""
     name: str = ""
     stake: float = 0.0
@@ -264,15 +279,14 @@ class ValidatorState:
         if avg >= VAS_SLASH_THRESHOLD:
             self.slashed_amount = 0.0
         else:
-            self.slashed_amount = (
-                VAS_SLASH_GAMMA * self.stake * (VAS_SLASH_THRESHOLD - avg) ** 2
-            )
+            self.slashed_amount = VAS_SLASH_GAMMA * self.stake * (VAS_SLASH_THRESHOLD - avg) ** 2
         return self.slashed_amount
 
 
 @dataclass
 class EpochResult:
     """Results from a single epoch simulation."""
+
     epoch_id: int = 0
     total_emission: float = 0.0
     miner_pool: float = 0.0

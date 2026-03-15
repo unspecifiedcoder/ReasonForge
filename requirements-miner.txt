@@ -1,0 +1,13 @@
+# ReasonForge Miner Dependencies
+bittensor>=10.0.1
+torch>=2.0.0
+numpy>=1.24.0
+pydantic>=2.0.0
+
+# LLM Backends (install as needed)
+openai>=1.0.0
+anthropic>=0.20.0
+# transformers>=4.35.0     # For local backend
+# vllm>=0.3.0              # For fast local inference
+# langchain-openai>=0.1.0  # For agent backend
+# langgraph>=0.0.10        # For agent backend

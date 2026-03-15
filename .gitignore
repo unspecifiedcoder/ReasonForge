@@ -45,6 +45,16 @@ build/
 # Simulation output
 simulation/*.json
 
+# State (top-level state directory, not reasonforge/state/)
+/state/*.db
+/state/
+
 # IDE
 .vscode/
 .idea/
+
+# Docker
+docker/.env
+
+# Wallets (never commit)
+.bittensor/
