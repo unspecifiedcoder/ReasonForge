@@ -1,4 +1,9 @@
-"""Stub ZK certificate prover for the ReasonForge Proof Layer."""
+"""ZK certificate prover for the ReasonForge Proof Layer.
+
+Generates :class:`VerificationCertificate` instances with real Groth16
+ZK proofs when ``snarkjs`` and the circuit build artefacts are
+available, falling back to stub mode otherwise.
+"""
 
 from __future__ import annotations
 
@@ -12,20 +17,40 @@ from .schema import VerificationCertificate
 
 logger = logging.getLogger(__name__)
 
+# Graceful import of the ZK prover -- falls back if snarkjs/circom
+# are not installed or build artefacts are missing.
+try:
+    from reasonforge.certificates.zk_prover import (
+        generate_proof,
+        is_zk_available,
+    )
+
+    ZK_AVAILABLE = is_zk_available()
+except Exception:  # noqa: BLE001
+    ZK_AVAILABLE = False
+
+if not ZK_AVAILABLE:
+    logger.info(
+        "ZK proving is unavailable (snarkjs or build artefacts not found). "
+        "CertificateProver will operate in stub mode."
+    )
+
 
 class CertificateProver:
     """Generates :class:`VerificationCertificate` instances.
 
-    Currently operates in *stub mode* -- the ``zk_proof`` field is
-    populated with a placeholder value.  A future release will
-    integrate a real ZK proving backend (e.g. Groth16 / PLONK).
+    When the ZK proving pipeline is available (``snarkjs`` installed
+    and circuit build artefacts present), certificates carry a real
+    Groth16 proof.  Otherwise, the ``zk_proof`` field is populated
+    with a stub placeholder.
     """
 
     def __init__(self, params_path: Optional[str] = None) -> None:
         self.params_path = params_path
+        mode = "real ZK" if ZK_AVAILABLE else "stub"
         logger.info(
-            "CertificateProver initialised (ZK proving is in stub mode, "
-            "params_path=%s)",
+            "CertificateProver initialised (%s mode, params_path=%s)",
+            mode,
             params_path,
         )
 
@@ -58,7 +83,8 @@ class CertificateProver:
         Returns
         -------
         VerificationCertificate
-            A fully-populated certificate (stub ZK proof).
+            A fully-populated certificate with a ZK proof (real or
+            stub depending on availability).
         """
         total_steps = len(step_verdicts)
         verified_steps = sum(1 for sv in step_verdicts if sv.verified)
@@ -71,6 +97,8 @@ class CertificateProver:
         else:
             overall_verdict = "FAILED"
 
+        timestamp = int(time.time())
+
         cert = VerificationCertificate(
             task_hash=task_hash,
             domain=domain,
@@ -78,10 +106,35 @@ class CertificateProver:
             total_steps=total_steps,
             verified_steps=verified_steps,
             overall_verdict=overall_verdict,
-            timestamp=int(time.time()),
+            timestamp=timestamp,
             validator_count=validator_count,
-            zk_proof=b"STUB_ZK_PROOF",
         )
+
+        # Attempt real ZK proof generation
+        if ZK_AVAILABLE:
+            try:
+                binary_verdicts = [1 if sv.verified else 0 for sv in step_verdicts]
+                proof_bytes, vk = await generate_proof(
+                    task_hash=task_hash,
+                    overall_verdict=overall_verdict,
+                    total_steps=total_steps,
+                    verified_steps=verified_steps,
+                    timestamp=timestamp,
+                    step_verdicts=binary_verdicts,
+                )
+                cert.zk_proof = proof_bytes
+                cert.verification_key = vk
+                logger.info("Real ZK proof generated for certificate")
+            except Exception:  # noqa: BLE001
+                logger.warning(
+                    "ZK proof generation failed, falling back to stub",
+                    exc_info=True,
+                )
+                cert.zk_proof = b"STUB_ZK_PROOF"
+        else:
+            cert.zk_proof = b"STUB_ZK_PROOF"
+            logger.warning("ZK proving unavailable, using stub proof")
+
         cert.compute_certificate_id()
 
         logger.info(
