@@ -1,0 +1,224 @@
+% ==========================================================================
+% ReasonForge: Verifiable AI Reasoning with Zero-Knowledge Attestation
+% Workshop paper (4 pages) -- target: AISec @ CCS / NeurIPS workshops
+% ==========================================================================
+\documentclass[10pt,a4paper,twocolumn]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+
+\definecolor{rfblue}{HTML}{2563EB}
+\definecolor{rfdark}{HTML}{1E293B}
+\definecolor{rfgreen}{HTML}{059669}
+\definecolor{rfred}{HTML}{DC2626}
+
+% ── Title ─────────────────────────────────────────────────────────────────
+\title{\textbf{ReasonForge: Verifiable AI Reasoning\\
+with Zero-Knowledge Attestation}}
+
+\author{
+  Ravi Shankar Bejini\\
+  \texttt{ravishankarbejini@gmail.com}\\
+  \small\url{https://github.com/UNSPECIFIEDCODER/ReasonForge}
+}
+
+\date{March 2026}
+
+% ==========================================================================
+\begin{document}
+\maketitle
+
+% ── Abstract ──────────────────────────────────────────────────────────────
+\begin{abstract}
+Large language models provide no formal guarantees about the validity of
+their intermediate reasoning steps.  We present ReasonForge, a system for
+mechanically verifying multi-step AI reasoning chains.  ReasonForge
+translates reasoning outputs into domain-appropriate formal
+representations---Lean~4 proofs, executable tests, and SMT
+formulas---and produces verification certificates encapsulated in
+Groth16 zero-knowledge proofs.  We describe a production code
+verification pipeline with AST-based security scanning, automated test
+generation, and sandboxed execution, and present an implementation
+comprising 7{,}418 lines of Python, a 153-line circom ZK circuit, and
+316 automated tests.
+\end{abstract}
+
+% ======================================================================
+\section{Introduction}
+% ======================================================================
+
+Current evaluation paradigms assess LLM outputs at the level of final
+answers, not intermediate reasoning steps.  A 20-step reasoning chain
+with 95\% per-step accuracy yields only 35.8\% end-to-end reliability.
+Process reward models~\citep{lightman2023verify} improve step-level
+evaluation but remain statistical estimators that cannot produce
+externally auditable attestations.
+
+ReasonForge treats AI reasoning verification as an infrastructure problem
+with a cryptographic solution.  The system (i)~translates structured
+reasoning chains into mechanically verifiable representations across
+three backends (Lean~4, executable tests, SMT solvers), (ii)~implements a
+production code verification pipeline, and (iii)~produces Groth16 ZK
+proofs over verification certificates for privacy-preserving attestation.
+
+% ======================================================================
+\section{System Architecture}
+% ======================================================================
+
+\subsection{Verification Pipeline}
+
+ReasonForge accepts structured reasoning traces with per-step domain
+classification (mathematical, code, or logical).  Each step is routed to
+the appropriate verification backend:
+
+\begin{itemize}[nosep,leftmargin=*]
+  \item \textbf{Mathematics $\rightarrow$ Lean~4:} Proof terms are
+    type-checked; successful checking constitutes formal proof.
+  \item \textbf{Code $\rightarrow$ Sandbox + Tests:} Source code is
+    scanned for security vulnerabilities, tested via auto-generated
+    pytest suites, and executed in an isolated subprocess.
+  \item \textbf{Logic $\rightarrow$ SMT:} First-order formulas are
+    submitted to Z3/CVC5; validity is confirmed via UNSAT on the
+    negation.
+\end{itemize}
+
+\subsection{Code Verification Pipeline}
+
+The production instantiation targets AI-generated Python code with four
+stages:
+
+\paragraph{Security Scanner.} An AST walker applies 10 detection rules
+(RF-SEC-001 through RF-SEC-010) covering \texttt{eval}/\texttt{exec}
+calls, dangerous imports, \texttt{pickle.loads}, hardcoded credentials,
+and bare \texttt{except} clauses.  Each vulnerability is tagged with
+severity (critical/high/medium/low) and line number.
+
+\paragraph{Test Generator.} Static analysis extracts function signatures
+and produces five categories of pytest tests: callable, type-check,
+None-input, docstring-example, and edge-case.  No LLM is required.
+
+\paragraph{Sandbox Executor.} A subprocess isolates execution with
+meta-path import hooks blocking 10 dangerous modules and wall-clock
+timeout enforcement.
+
+\paragraph{Confidence Scoring.} The composite score
+$C = 0.2 S + 0.3\,\text{Sec} + 0.5 T$ weights syntax validity~($S$),
+security score~(Sec), and test pass rate~($T$).  Verdict is
+\textsc{passed} when $S=1$, risk $\notin \{\text{critical, high}\}$, and
+$T \geq 0.8$.
+
+\subsection{ZK Attestation}
+
+A 153-line circom circuit generates Groth16 proofs over certificate
+fields.  Public inputs include the task hash (8$\times$32-bit limbs),
+overall verdict, total/verified step counts, and timestamp.  Private
+inputs are the 20-element binary step verdict array.  The circuit
+enforces: (i)~binary constraints on step verdicts, (ii)~sum equals
+verified count, (iii)~verdict consistency, (iv)~range checks on hash
+limbs, and (v)~indicator exclusivity.  The proof attests ``\emph{trace
+with hash $H$ received verdict $V$ with $k$/$n$ steps verified}''
+without revealing step details.
+
+% ======================================================================
+\section{Incentive Mechanism}
+% ======================================================================
+
+The decentralised network scores miners via the Composite Miner Score:
+
+\vspace{-4pt}
+\begin{equation}
+  \text{CMS}(m,t) = 0.45 Q + 0.30 A + 0.15 N + 0.10\,\text{Eff}
+\end{equation}
+\vspace{-4pt}
+
+\noindent and the Composite Translation Score for formalisation quality:
+
+\vspace{-4pt}
+\begin{equation}
+  \text{CTS}(m,t) = 0.40 C_{\text{comp}} + 0.25 C_{\text{corr}}
+    + 0.20 C_{\text{cmpl}} + 0.15 C_{\text{eff}}
+\end{equation}
+\vspace{-4pt}
+
+Adversarial resistance is provided by 15\% trap problem injection,
+blind evaluation via cryptographic identity hashing, quadratic validator
+slashing ($\text{slash} \propto (\theta - \text{VAS})^2$), and a
+similarity penalty for plagiarised submissions.
+
+% ======================================================================
+\section{Evaluation}
+% ======================================================================
+
+The implementation comprises 7{,}418 lines of Python (37 modules), a
+153-line circom circuit, and 316 tests (310 passing, 6 requiring
+circom/snarkjs).  The full test suite executes in $\sim$12 seconds on
+commodity hardware.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{Component} & \textbf{Tests} \\
+\midrule
+Certificates + ZK   & 77 \\
+Code verify (unit)   & 38 \\
+Code verify (integ.) & 7 \\
+Engine + Simulator   & 50 \\
+Protocol + Types     & 45 \\
+Translation          & 32 \\
+Verification         & 43 \\
+Proof layer sim.     & 24 \\
+\midrule
+\textbf{Total}       & 316 \\
+\bottomrule
+\end{tabular}
+\caption{Test suite breakdown by component.}
+\end{table}
+
+The code verification pipeline correctly classifies clean code as
+\textsc{passed} (confidence $\geq 0.7$), unsafe code (\texttt{os},
+\texttt{eval}) as \textsc{failed} with appropriate security risk levels,
+and syntactically invalid code as \textsc{failed} with descriptive error
+messages.  All 10 security rules detect their target vulnerability
+classes with zero false negatives on the test corpus.  The sandbox
+successfully blocks all 10 dangerous module imports.
+
+The certificate round-trip (pipeline $\rightarrow$ report $\rightarrow$
+ZK certificate $\rightarrow$ registry $\rightarrow$ verification)
+completes end-to-end for all test scenarios.
+
+% ======================================================================
+\section{Conclusion}
+% ======================================================================
+
+ReasonForge demonstrates that mechanical verification of AI reasoning
+chains is practical and deployable.  The code verification pipeline
+provides immediate value for AI code generation workflows, while the ZK
+attestation layer enables privacy-preserving compliance for enterprise
+deployments.  Future work includes improving translation fidelity for
+advanced mathematics, extending code verification to additional
+languages, and migrating to transparent proof systems to eliminate the
+trusted setup.
+
+\smallskip
+\noindent\textbf{Code:}
+\url{https://github.com/UNSPECIFIEDCODER/ReasonForge}
+
+% ── References ────────────────────────────────────────────────────────────
+\bibliography{refs}
+
+\end{document}
