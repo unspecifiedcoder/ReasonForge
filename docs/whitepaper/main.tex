@@ -600,7 +600,7 @@ verifiable in $O(1)$ time by any party holding the verification key.
     minimum width=5cm, minimum height=2.4cm, align=center,
     font=\small\sffamily
   },
-  out/.style={
+  output/.style={
     rectangle, draw=rfgreen, fill=rfgreen!10, rounded corners=2pt,
     minimum width=3cm, minimum height=0.6cm, align=center,
     font=\small\sffamily
@@ -624,7 +624,7 @@ verifiable in $O(1)$ time by any party holding the verification key.
     Range $\cdot$ Exclusivity};
 
   % Output
-  \node[out, below=0.8cm of circuit] (proof) {Groth16 Proof (128--256 B)};
+  \node[output, below=0.8cm of circuit] (proof) {Groth16 Proof (128--256 B)};
 
   % Arrows
   \draw[arr, rfblue] (pt.south) -- ++(0,-0.3) -| (circuit.north west);
