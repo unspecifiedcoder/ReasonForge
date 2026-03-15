@@ -12,6 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 api = ["fastapi>=0.100.0", "uvicorn>=0.23.0"]
 dev = ["pytest>=7.0.0", "pytest-asyncio>=0.21.0"]
+zk = []  # No extra Python packages needed; requires circom and snarkjs (npm) on PATH
 all = [
     "fastapi>=0.100.0",
     "uvicorn>=0.23.0",
