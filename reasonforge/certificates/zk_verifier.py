@@ -14,11 +14,15 @@ import json
 import logging
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
+
+# On Windows, npm-installed tools (.cmd wrappers) require shell=True.
+_USE_SHELL: bool = sys.platform == "win32"
 
 # Default verification key path.
 _BUILD_DIR = Path(__file__).resolve().parent / "circuits" / "build"
@@ -126,6 +130,7 @@ def verify_proof_sync(
                 text=True,
                 timeout=60,
                 cwd=str(tmp),
+                shell=_USE_SHELL,
             )
         except subprocess.TimeoutExpired:
             logger.warning("snarkjs verification timed out")

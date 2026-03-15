@@ -22,8 +22,12 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
+
+# On Windows, npm-installed tools (.cmd wrappers) require shell=True.
+_USE_SHELL: bool = sys.platform == "win32"
 
 # Paths
 _CIRCUITS_DIR = Path(__file__).resolve().parent / "circuits"
@@ -36,9 +40,34 @@ def _check_tool(name: str) -> bool:
     return shutil.which(name) is not None
 
 
+def _find_circom() -> Optional[str]:
+    """Return the name of the circom v2 compiler, or ``None``.
+
+    Checks for ``circom2`` (npm WASM package) first, then ``circom``
+    (native Rust build).  Only returns a name whose ``--version``
+    output contains ``2.``.
+    """
+    for candidate in ("circom2", "circom"):
+        if shutil.which(candidate) is None:
+            continue
+        try:
+            result = subprocess.run(
+                [candidate, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                shell=_USE_SHELL,
+            )
+            if "2." in result.stdout:
+                return candidate
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            continue
+    return None
+
+
 def _run(
-    cmd: list[str],
-    cwd: Path | None = None,
+    cmd: List[str],
+    cwd: Optional[Path] = None,
     description: str = "",
 ) -> None:
     """Run a subprocess command, logging output."""
@@ -52,6 +81,7 @@ def _run(
         text=True,
         cwd=str(cwd) if cwd else None,
         timeout=300,
+        shell=_USE_SHELL,
     )
 
     if result.stdout.strip():
@@ -73,10 +103,12 @@ def _run(
 def run_setup() -> None:
     """Execute the full trusted setup procedure."""
     # Check prerequisites
-    if not _check_tool("circom"):
+    circom_cmd = _find_circom()
+    if circom_cmd is None:
         print(
-            "ERROR: 'circom' compiler not found on PATH.\n"
-            "Install from: https://docs.circom.io/getting-started/installation/",
+            "ERROR: circom v2 compiler not found on PATH.\n"
+            "Install via: npm install -g circom2\n"
+            "  or: https://docs.circom.io/getting-started/installation/",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -100,6 +132,7 @@ def run_setup() -> None:
 
     print("=" * 60)
     print("ReasonForge ZK Certificate Trusted Setup")
+    print(f"  circom: {circom_cmd}")
     print("=" * 60)
 
     # ── Step 1: Powers of Tau ceremony ──────────────────────────
@@ -153,10 +186,10 @@ def run_setup() -> None:
     )
 
     # ── Step 2: Compile the circom circuit ──────────────────────
-    print("[4/6] Compiling circom circuit...")
+    print(f"[4/6] Compiling circom circuit ({circom_cmd})...")
     _run(
         [
-            "circom",
+            circom_cmd,
             str(_CIRCOM_FILE),
             "--r1cs",
             "--wasm",

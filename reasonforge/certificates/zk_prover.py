@@ -15,6 +15,7 @@ import json
 import logging
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -22,6 +23,9 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from .witness import generate_witness_json
 
 logger = logging.getLogger(__name__)
+
+# On Windows, npm-installed tools (.cmd wrappers) require shell=True.
+_USE_SHELL: bool = sys.platform == "win32"
 
 # Default paths for build artefacts produced by ``setup.py``.
 _CIRCUITS_DIR = Path(__file__).resolve().parent / "circuits"
@@ -72,6 +76,7 @@ def _run_snarkjs(
         check=True,
         cwd=str(cwd) if cwd else None,
         timeout=120,
+        shell=_USE_SHELL,
     )
 
 

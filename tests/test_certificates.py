@@ -10,7 +10,10 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess as _subprocess
+import sys as _sys
 from pathlib import Path
+from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -910,38 +913,61 @@ class TestSetupModule:
 # ──────────────────────────────────────────────
 
 
+# On Windows, npm-installed tools (.cmd wrappers) require shell=True.
+_USE_SHELL: bool = _sys.platform == "win32"
+
+
 def _tool_works(name: str) -> bool:
     """Return True if a tool can actually be executed (not just found on PATH)."""
-    import subprocess
-
     if shutil.which(name) is None:
         return False
     try:
-        subprocess.run(
+        _subprocess.run(
             [name, "--version"],
             capture_output=True,
             timeout=10,
+            shell=_USE_SHELL,
         )
         return True
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except (FileNotFoundError, _subprocess.TimeoutExpired, OSError):
         return False
 
 
-_CIRCOM_INSTALLED = _tool_works("circom")
+def _find_circom_v2() -> Optional[str]:
+    """Find a working circom v2 compiler (``circom2`` or ``circom``)."""
+    for candidate in ("circom2", "circom"):
+        if shutil.which(candidate) is None:
+            continue
+        try:
+            result = _subprocess.run(
+                [candidate, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                shell=_USE_SHELL,
+            )
+            if "2." in result.stdout:
+                return candidate
+        except (FileNotFoundError, _subprocess.TimeoutExpired, OSError):
+            continue
+    return None
+
+
+_CIRCOM_CMD = _find_circom_v2()
+_CIRCOM_INSTALLED = _CIRCOM_CMD is not None
 _SNARKJS_INSTALLED = _tool_works("snarkjs")
 
 
 @pytest.mark.skipif(
     not _CIRCOM_INSTALLED,
-    reason="circom compiler not installed",
+    reason="circom v2 compiler not installed",
 )
 class TestCircuitCompilation:
-    """Tests that require circom to be installed."""
+    """Tests that require circom v2 to be installed."""
 
     def test_circuit_compiles(self, tmp_path: Path) -> None:
-        """The circuit compiles successfully with circom."""
-        import subprocess
-
+        """The circuit compiles successfully with circom v2."""
+        assert _CIRCOM_CMD is not None  # for type checker
         circuit_path = (
             Path(__file__).resolve().parent.parent
             / "reasonforge"
@@ -949,9 +975,9 @@ class TestCircuitCompilation:
             / "circuits"
             / "certificate.circom"
         )
-        result = subprocess.run(
+        result = _subprocess.run(
             [
-                "circom",
+                _CIRCOM_CMD,
                 str(circuit_path),
                 "--r1cs",
                 "--wasm",
@@ -962,8 +988,11 @@ class TestCircuitCompilation:
             capture_output=True,
             text=True,
             timeout=120,
+            shell=_USE_SHELL,
         )
-        assert result.returncode == 0, f"circom compilation failed:\n{result.stderr}"
+        assert result.returncode == 0, (
+            f"circom compilation failed:\nstdout: {result.stdout}\nstderr: {result.stderr}"
+        )
         # Check outputs were created
         assert (tmp_path / "certificate.r1cs").is_file()
         assert (tmp_path / "certificate_js" / "certificate.wasm").is_file()
