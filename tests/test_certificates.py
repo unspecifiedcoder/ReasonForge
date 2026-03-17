@@ -935,7 +935,7 @@ def _tool_works(name: str) -> bool:
 
 def _find_circom_v2() -> Optional[str]:
     """Find a working circom v2 compiler (``circom2`` or ``circom``)."""
-    for candidate in ("circom2", "circom"):
+    for candidate in ("circom", "circom2"):
         if shutil.which(candidate) is None:
             continue
         try:

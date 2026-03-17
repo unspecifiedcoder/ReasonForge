@@ -43,11 +43,11 @@ def _check_tool(name: str) -> bool:
 def _find_circom() -> Optional[str]:
     """Return the name of the circom v2 compiler, or ``None``.
 
-    Checks for ``circom2`` (npm WASM package) first, then ``circom``
-    (native Rust build).  Only returns a name whose ``--version``
+    Checks for ``circom`` (native Rust build) first, then ``circom2``
+    (npm WASM package).  Only returns a name whose ``--version``
     output contains ``2.``.
     """
-    for candidate in ("circom2", "circom"):
+    for candidate in ("circom", "circom2"):
         if shutil.which(candidate) is None:
             continue
         try:
